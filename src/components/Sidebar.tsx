@@ -129,6 +129,60 @@ const navigation = [
     bgColor: 'bg-fuchsia-100',
     gradient: 'from-fuchsia-500 to-pink-500'
   },
+  {
+    name: 'Financial Aid',
+    href: '/financial-aid',
+    icon: Search,
+    description: 'Find scholarships',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-100',
+    gradient: 'from-emerald-500 to-teal-500'
+  },
+  {
+    name: 'Mentorship',
+    href: '/mentorship',
+    icon: Users,
+    description: 'Connect with mentors',
+    color: 'text-cyan-600',
+    bgColor: 'bg-cyan-100',
+    gradient: 'from-cyan-500 to-blue-500'
+  },
+  {
+    name: 'Progress Tracker',
+    href: '/progress',
+    icon: BarChart3,
+    description: 'Track your growth',
+    color: 'text-sky-600',
+    bgColor: 'bg-sky-100',
+    gradient: 'from-sky-500 to-indigo-500'
+  },
+  {
+    name: 'Skill Gap Analysis',
+    href: '/skills',
+    icon: Target,
+    description: 'Analyze your skills',
+    color: 'text-stone-600',
+    bgColor: 'bg-stone-100',
+    gradient: 'from-stone-500 to-gray-500'
+  },
+  {
+    name: 'For Parents',
+    href: '/parent',
+    icon: Users,
+    description: 'Parental guidance',
+    color: 'text-lime-600',
+    bgColor: 'bg-lime-100',
+    gradient: 'from-lime-500 to-green-500'
+  },
+  {
+    name: 'Predictive Analytics',
+    href: '/predictive',
+    icon: Sparkles,
+    description: 'Future career insights',
+    color: 'text-violet-600',
+    bgColor: 'bg-violet-100',
+    gradient: 'from-violet-500 to-purple-500'
+  },
   { 
     name: 'Alerts', 
     href: '/alerts', 
