@@ -1,37 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/Dashboard';
-import { Login } from './components/Login';
-import { Profile } from './components/Profile';
-import { Quiz } from './components/Quiz';
-import { Streams } from './components/Streams';
-import { Colleges } from './components/Colleges';
-import { EnhancedColleges } from './components/EnhancedColleges';
-import { CareerPaths } from './components/CareerPaths';
-import { Alerts } from './components/Alerts';
-import { AdvancedRecommendationEngine } from './components/AdvancedRecommendationEngine';
-import { EducationalAwarenessCenter } from './components/EducationalAwarenessCenter';
-import { AwarenessQuiz } from './components/AwarenessQuiz';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Toaster } from './components/ui/sonner';
-import { AchievementSystem } from './components/AchievementSystem';
-import { MentorshipProgram } from './components/MentorshipProgram';
-import { ParentDashboard } from './components/ParentDashboard';
-import { ProgressTracker } from './components/ProgressTracker';
-import { PredictiveAnalytics } from './components/PredictiveAnalytics';
-import { FinancialAidFinder } from './components/FinancialAidFinder';
-import { ExpertConnect } from './components/ExpertConnect';
-import { SkillGapAnalyzer } from './components/SkillGapAnalyzer';
-import { AdminPanel } from './components/AdminPanel';
-// Lazy TODOs: AchievementSystem, SocialLearning, MarketIntelligence, AdminPanel
+import { LocaleProvider } from './components/LocaleContext';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+
+// Lazy-loaded route components to reduce initial bundle
+const Dashboard = React.lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const Login = React.lazy(() => import('./components/Login').then(m => ({ default: m.Login })));
+const Profile = React.lazy(() => import('./components/Profile').then(m => ({ default: m.Profile })));
+const Quiz = React.lazy(() => import('./components/Quiz').then(m => ({ default: m.Quiz })));
+const Streams = React.lazy(() => import('./components/Streams').then(m => ({ default: m.Streams })));
+const EnhancedColleges = React.lazy(() => import('./components/EnhancedColleges').then(m => ({ default: m.EnhancedColleges })));
+const CareerPaths = React.lazy(() => import('./components/CareerPaths').then(m => ({ default: m.CareerPaths })));
+const Alerts = React.lazy(() => import('./components/Alerts').then(m => ({ default: m.Alerts })));
+const AdvancedRecommendationEngine = React.lazy(() => import('./components/AdvancedRecommendationEngine').then(m => ({ default: m.AdvancedRecommendationEngine })));
+const EducationalAwarenessCenter = React.lazy(() => import('./components/EducationalAwarenessCenter').then(m => ({ default: m.EducationalAwarenessCenter })));
+const AwarenessQuiz = React.lazy(() => import('./components/AwarenessQuiz').then(m => ({ default: m.AwarenessQuiz })));
+const AchievementSystem = React.lazy(() => import('./components/AchievementSystem').then(m => ({ default: m.AchievementSystem })));
+const MentorshipProgram = React.lazy(() => import('./components/MentorshipProgram').then(m => ({ default: m.MentorshipProgram })));
+const ParentDashboard = React.lazy(() => import('./components/ParentDashboard').then(m => ({ default: m.ParentDashboard })));
+const ProgressTracker = React.lazy(() => import('./components/ProgressTracker').then(m => ({ default: m.ProgressTracker })));
+const PredictiveAnalytics = React.lazy(() => import('./components/PredictiveAnalytics').then(m => ({ default: m.PredictiveAnalytics })));
+const FinancialAidFinder = React.lazy(() => import('./components/FinancialAidFinder').then(m => ({ default: m.FinancialAidFinder })));
+const ExpertConnect = React.lazy(() => import('./components/ExpertConnect').then(m => ({ default: m.ExpertConnect })));
+const SkillGapAnalyzer = React.lazy(() => import('./components/SkillGapAnalyzer').then(m => ({ default: m.SkillGapAnalyzer })));
+const AdminPanel = React.lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -39,26 +41,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 }
 
 function AppLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header with theme toggle */}
+        {/* Header with theme toggle and language switcher */}
         <header className="flex items-center justify-end p-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <ErrorBoundary>
-            <ThemeToggle />
-          </ErrorBoundary>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <ErrorBoundary>
+              <ThemeToggle />
+            </ErrorBoundary>
+          </div>
         </header>
         <main className="flex-1 overflow-auto">
           <ErrorBoundary>
@@ -72,55 +77,57 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { user } = useAuth();
-  
+
   if (!user) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <Suspense fallback={<div className="p-6">Loading...</div>}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
     );
   }
-  
+
   return (
     <AppLayout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/quiz" element={<Quiz />} />
-        <Route path="/streams" element={<Streams />} />
-        <Route path="/colleges" element={<EnhancedColleges />} />
-        <Route path="/careers" element={<CareerPaths />} />
-        <Route path="/alerts" element={<Alerts />} />
-        <Route path="/awareness" element={<EducationalAwarenessCenter />} />
-        <Route path="/awareness-quiz" element={<AwarenessQuiz />} />
-        <Route path="/advanced-recommendation-engine" element={<AdvancedRecommendationEngine />} />
-        <Route path="/achievements" element={<AchievementSystem />} />
-        <Route path="/mentorship" element={<MentorshipProgram />} />
-        <Route path="/parent" element={<ParentDashboard />} />
-        <Route path="/progress" element={<ProgressTracker />} />
-        <Route path="/predictive" element={<PredictiveAnalytics />} />
-        <Route path="/financial-aid" element={<FinancialAidFinder />} />
-        <Route path="/experts" element={<ExpertConnect />} />
-        <Route path="/skills" element={<SkillGapAnalyzer />} />
-        {/* Admin-only route guard */}
-        <Route path="/admin" element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<div className="p-6">Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/quiz" element={<Quiz />} />
+          <Route path="/streams" element={<Streams />} />
+          <Route path="/colleges" element={<EnhancedColleges />} />
+          <Route path="/careers" element={<CareerPaths />} />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/awareness" element={<EducationalAwarenessCenter />} />
+          <Route path="/awareness-quiz" element={<AwarenessQuiz />} />
+          <Route path="/advanced-recommendation-engine" element={<AdvancedRecommendationEngine />} />
+          <Route path="/achievements" element={<AchievementSystem />} />
+          <Route path="/mentorship" element={<MentorshipProgram />} />
+          <Route path="/parent" element={<ParentDashboard />} />
+          <Route path="/progress" element={<ProgressTracker />} />
+          <Route path="/predictive" element={<PredictiveAnalytics />} />
+          <Route path="/financial-aid" element={<FinancialAidFinder />} />
+          <Route path="/experts" element={<ExpertConnect />} />
+          <Route path="/skills" element={<SkillGapAnalyzer />} />
+          <Route path="/admin" element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AppLayout>
   );
 }
 
 export default function App() {
-  // Suppress certain console warnings in production
-  useEffect(() => {
+  // Keep console suppression as before
+  React.useEffect(() => {
     if (process.env.NODE_ENV === 'production') {
       const originalWarn = console.warn;
       const originalError = console.error;
-      
+
       console.warn = (...args) => {
         const message = args.join(' ');
-        // Suppress known warnings that are not actionable by users
         if (
           message.includes('Function components cannot be given refs') ||
           message.includes('getPage') ||
@@ -133,7 +140,6 @@ export default function App() {
 
       console.error = (...args) => {
         const message = args.join(' ');
-        // Suppress certain errors that are handled gracefully
         if (
           message.includes('Message getPage') ||
           message.includes('response timed out')
@@ -152,16 +158,18 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <Router>
-            <div className="min-h-screen bg-background">
-              <AppRoutes />
-              <Toaster />
-            </div>
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Router>
+              <div className="min-h-screen bg-background">
+                <AppRoutes />
+                <Toaster />
+              </div>
+            </Router>
+          </AuthProvider>
+        </ThemeProvider>
+      </LocaleProvider>
     </ErrorBoundary>
   );
 }
