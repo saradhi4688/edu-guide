@@ -247,7 +247,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
                       ? "bg-primary text-primary-foreground" 
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
-                  aria-current={({ isActive }) => (isActive ? 'page' : undefined) as any}
+                  
                 >
                   <Icon className="mr-3 h-5 w-5" aria-hidden="true" />
                   <span className="flex-1">{item.name}</span>
@@ -268,7 +268,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
                   "flex items-center px-3 py-2 rounded-lg transition-colors",
                   isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
-                aria-current={({ isActive }) => (isActive ? 'page' : undefined) as any}
+                
               >
                 <Briefcase className="mr-3 h-5 w-5" aria-hidden="true" />
                 <span className="flex-1">Admin</span>
