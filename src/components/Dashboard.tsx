@@ -187,6 +187,10 @@ export function Dashboard() {
     achievements: [] as any[]
   });
   const [loading, setLoading] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Log dashboard view for lightweight telemetry
+  useEffect(() => { try { logEvent('dashboard_view'); } catch (e) {} }, []);
 
   useEffect(() => {
     loadDashboardData();
