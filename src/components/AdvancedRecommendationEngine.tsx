@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { MapPin, Star, Users, DollarSign, Clock, TrendingUp, BookOpen, Building2, Bookmark, Heart, ThumbsUp } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { getApiUrl } from '../utils/api';
+import { collegeDatabase } from '../utils/collegeDatabase';
 
 // Types (kept same as before)
 interface RecommendationResult {
@@ -198,221 +199,65 @@ export function AdvancedRecommendationEngine() {
   // Filter object memoized
   const filters = useMemo(() => ({ maxDistance, maxFees, minRating, medium }), [maxDistance, maxFees, minRating, medium]);
 
-  // Local college database (fallback) - expanded sample dataset across India
-  function getLocalCollegeDatabase() {
-    return [
-      // Delhi / NCR
-      {
-        id: 'iit-delhi',
-        name: 'IIT Delhi',
-        type: 'Public',
-        city: 'Delhi',
-        state: 'Delhi',
-        location: { lat: 28.5459, lon: 77.1927 },
-        rating: 4.8,
-        courses: [
-          { id: 'iit-cse', name: 'Computer Science Engineering', description: 'Elite computer science program with cutting-edge research', degree: 'B.Tech', fees: 250000, seats: 60, tags: ['technology', 'programming', 'ai', 'english'] },
-          { id: 'iit-me', name: 'Mechanical Engineering', description: 'Mechanical engineering with modern labs', degree: 'B.Tech', fees: 220000, seats: 80, tags: ['engineering', 'mechanical', 'english'] }
-        ]
-      },
-      {
-        id: 'du-north',
-        name: 'Delhi University (North Campus)',
-        type: 'Public',
-        city: 'Delhi',
-        state: 'Delhi',
-        location: { lat: 28.6895, lon: 77.2123 },
-        rating: 4.3,
-        courses: [
-          { id: 'du-cs', name: 'Computer Science', description: 'Strong undergraduate CS with practical labs', degree: 'B.Sc', fees: 45000, seats: 200, tags: ['computer science', 'mathematics', 'english'] }
-        ]
-      },
-      {
-        id: 'jnu',
-        name: 'Jawaharlal Nehru University',
-        type: 'Public',
-        city: 'Delhi',
-        state: 'Delhi',
-        location: { lat: 28.5385, lon: 77.1667 },
-        rating: 4.4,
-        courses: [
-          { id: 'jnu-ir', name: 'International Relations', description: 'Premier IR program with global perspective', degree: 'M.A', fees: 30000, seats: 50, tags: ['politics', 'international', 'english'] }
-        ]
-      },
-
-      // Maharashtra
-      {
-        id: 'iit-bombay',
-        name: 'IIT Bombay',
-        type: 'Public',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        location: { lat: 19.1326, lon: 72.9133 },
-        rating: 4.9,
-        courses: [
-          { id: 'iitb-cse', name: 'Computer Science Engineering', description: 'Top-tier CSE program with strong industry links', degree: 'B.Tech', fees: 260000, seats: 70, tags: ['technology', 'programming', 'ai', 'english'] },
-          { id: 'iitb-ee', name: 'Electrical Engineering', description: 'Strong EE department with research focus', degree: 'B.Tech', fees: 240000, seats: 60, tags: ['engineering', 'electronics', 'english'] }
-        ]
-      },
-      {
-        id: 'mumbai-univ',
-        name: 'University of Mumbai',
-        type: 'Public',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        location: { lat: 19.075983, lon: 72.877655 },
-        rating: 4.0,
-        courses: [
-          { id: 'mu-commerce', name: 'B.Com', description: 'Commerce program with practical accounting skills', degree: 'B.Com', fees: 30000, seats: 300, tags: ['commerce', 'business', 'english'] }
-        ]
-      },
-
-      // Karnataka
-      {
-        id: 'iisc',
-        name: 'IISc Bangalore',
-        type: 'Public',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        location: { lat: 13.0219, lon: 77.5676 },
-        rating: 4.8,
-        courses: [
-          { id: 'iisc-research', name: 'Research Sciences', description: 'Research-focused graduate programs', degree: 'M.Tech/PhD', fees: 200000, seats: 40, tags: ['research', 'science', 'english'] }
-        ]
-      },
-      {
-        id: 'pesu',
-        name: 'PES University',
-        type: 'Private',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        location: { lat: 12.9078, lon: 77.5009 },
-        rating: 4.1,
-        courses: [
-          { id: 'pesu-cse', name: 'Computer Science', description: 'Industry-focused CS program', degree: 'B.Tech', fees: 150000, seats: 120, tags: ['computer', 'programming', 'english'] }
-        ]
-      },
-
-      // Telangana / Hyderabad
-      {
-        id: 'iit-hyderabad',
-        name: 'IIT Hyderabad',
-        type: 'Public',
-        city: 'Hyderabad',
-        state: 'Telangana',
-        location: { lat: 17.4448, lon: 78.3498 },
-        rating: 4.7,
-        courses: [
-          { id: 'iith-cse', name: 'Computer Science Engineering', description: 'Modern curriculum with research', degree: 'B.Tech', fees: 220000, seats: 60, tags: ['technology', 'programming', 'english'] }
-        ]
-      },
-      {
-        id: 'osmania',
-        name: 'Osmania University',
-        type: 'Public',
-        city: 'Hyderabad',
-        state: 'Telangana',
-        location: { lat: 17.4126, lon: 78.4329 },
-        rating: 4.0,
-        courses: [
-          { id: 'osmania-mbbs', name: 'Medicine', description: 'MBBS program with strong clinical training', degree: 'MBBS', fees: 80000, seats: 200, tags: ['medicine', 'healthcare', 'english'] }
-        ]
-      },
-
-      // Andhra Pradesh
-      {
-        id: 'jntua',
-        name: 'JNTU Anantapur',
-        type: 'Public',
-        city: 'Anantapur',
-        state: 'Andhra Pradesh',
-        location: { lat: 14.6818, lon: 77.6002 },
-        rating: 3.8,
-        courses: [
-          { id: 'jntu-cse', name: 'Computer Science', description: 'Regional engineering program', degree: 'B.Tech', fees: 45000, seats: 120, tags: ['engineering', 'computer', 'english'] }
-        ]
-      },
-      {
-        id: 'aditya',
-        name: 'Aditya Engineering College',
-        type: 'Private',
-        city: 'Surampalem',
-        state: 'Andhra Pradesh',
-        location: { lat: 17.0529, lon: 82.1195 },
-        rating: 3.6,
-        courses: [
-          { id: 'aditya-cse', name: 'Computer Science', description: 'Local engineering college', degree: 'B.Tech', fees: 60000, seats: 180, tags: ['computer', 'engineering', 'english'] }
-        ]
-      },
-
-      // Tamil Nadu
-      {
-        id: 'iit-madras',
-        name: 'IIT Madras',
-        type: 'Public',
-        city: 'Chennai',
-        state: 'Tamil Nadu',
-        location: { lat: 12.9916, lon: 80.2330 },
-        rating: 4.9,
-        courses: [
-          { id: 'iitm-cse', name: 'Computer Science Engineering', description: 'Research-driven CSE', degree: 'B.Tech', fees: 260000, seats: 70, tags: ['technology', 'programming', 'english'] }
-        ]
-      },
-      {
-        id: 'anna-univ',
-        name: 'Anna University',
-        type: 'Public',
-        city: 'Chennai',
-        state: 'Tamil Nadu',
-        location: { lat: 13.0000, lon: 80.2500 },
-        rating: 4.1,
-        courses: [
-          { id: 'anna-eng', name: 'Engineering', description: 'Large engineering university with multiple branches', degree: 'B.Tech', fees: 50000, seats: 300, tags: ['engineering', 'technical', 'english'] }
-        ]
-      },
-
-      // Gujarat
-      {
-        id: 'iit-gandhinagar',
-        name: 'IIT Gandhinagar',
-        type: 'Public',
-        city: 'Gandhinagar',
-        state: 'Gujarat',
-        location: { lat: 23.2156, lon: 72.6369 },
-        rating: 4.4,
-        courses: [
-          { id: 'iitgn-cse', name: 'Computer Science', description: 'Strong CS program', degree: 'B.Tech', fees: 200000, seats: 50, tags: ['computer', 'programming', 'english'] }
-        ]
-      },
-
-      // West Bengal
-      {
-        id: 'iit-kharagpur',
-        name: 'IIT Kharagpur',
-        type: 'Public',
-        city: 'Kharagpur',
-        state: 'West Bengal',
-        location: { lat: 22.3149, lon: 87.3105 },
-        rating: 4.7,
-        courses: [
-          { id: 'iitkgp-cse', name: 'Computer Science', description: 'One of the oldest IITs with strong alumni', degree: 'B.Tech', fees: 240000, seats: 70, tags: ['technology', 'programming', 'english'] }
-        ]
-      },
-
-      // Punjab
-      {
-        id: 'iit-rup',
-        name: 'IIT Ropar',
-        type: 'Public',
-        city: 'Rupnagar',
-        state: 'Punjab',
-        location: { lat: 30.9668, lon: 76.5336 },
-        rating: 4.2,
-        courses: [
-          { id: 'iitr-cse', name: 'Computer Science', description: 'Emerging research-focused campus', degree: 'B.Tech', fees: 180000, seats: 60, tags: ['computer', 'engineering', 'english'] }
-        ]
+  // Map the comprehensive collegeDatabase (src/utils/collegeDatabase.ts) to the local shape used by this component.
+  function parseFeesString(feesStr?: string) {
+    if (!feesStr) return 100000;
+    try {
+      // try to extract a numeric value in lakhs or rupees
+      const cleaned = feesStr.replace(/[^0-9\.lpaLPA₹]/g, '').toLowerCase();
+      if (cleaned.includes('lpa')) {
+        const num = parseFloat(cleaned.replace('lpa', ''));
+        if (!isNaN(num)) return Math.round(num * 100000);
       }
-    ];
+      const num = parseFloat(cleaned);
+      if (!isNaN(num)) return Math.round(num);
+    } catch {}
+    return 100000;
+  }
+
+  function inferDegreeFromCourse(courseName: string) {
+    const lower = courseName.toLowerCase();
+    if (lower.includes('btech') || lower.includes('engineering') || lower.includes('b.tech')) return 'B.Tech';
+    if (lower.includes('mba') || lower.includes('management')) return 'MBA';
+    if (lower.includes('mbbs') || lower.includes('medicine')) return 'MBBS';
+    if (lower.includes('mtech') || lower.includes('phd') || lower.includes('research')) return 'M.Tech/PhD';
+    if (lower.includes('b.sc') || lower.includes('bsc') || lower.includes('science')) return 'B.Sc';
+    if (lower.includes('commerce') || lower.includes('b.com')) return 'B.Com';
+    return 'Diploma';
+  }
+
+  function getLocalCollegeDatabase() {
+    const mapped = collegeDatabase.map((col) => {
+      const location = { lat: Number(col.latitude) || 0, lon: Number(col.longitude) || 0 };
+      const courses = (col.courses || []).map((c: string, idx: number) => {
+        const fees = parseFeesString(col.fees as any);
+        const degree = inferDegreeFromCourse(c);
+        const tags = Array.from(new Set(((c + ' ' + (col.specializations || []).join(' ') + ' ' + (col.type || '')).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean))));
+        if (!tags.includes('english')) tags.push('english');
+        return { id: `${col.id}-${idx}`, name: c, description: `${c} program at ${col.name}`, degree, fees, seats: 100, tags };
+      });
+
+      return {
+        id: col.id,
+        name: col.name,
+        type: col.type === 'Government' || col.type === 'Deemed' ? 'Public' : col.type,
+        city: col.city,
+        state: col.state,
+        location,
+        rating: col.rating || 4,
+        courses
+      } as any;
+    });
+
+    // runtime extension point: if a global variable __EXTRA_COLLEGES__ is injected (for admin/testing), merge it
+    try {
+      const win = window as any;
+      if (Array.isArray(win.__EXTRA_COLLEGES__)) {
+        mapped.push(...win.__EXTRA_COLLEGES__);
+      }
+    } catch {}
+
+    return mapped;
   }
 
   function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
