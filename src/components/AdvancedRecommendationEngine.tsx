@@ -384,20 +384,50 @@ export function AdvancedRecommendationEngine() {
 
       // Try server request
       try {
-        const response = await fetch(`${getApiUrl()}/api/recommend`, {
+        // call public colleges search endpoint (doesn't require auth) on the Edge Function
+        const response = await fetch(`${getApiUrl()}/colleges/search`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
           body: JSON.stringify({ lat: location.lat, lon: location.lon, page, pageSize: 10, filters: { maxDistance, maxFees, minRating, medium } })
         });
 
         if (response.ok) {
-          const data: RecommendationResponse = await response.json();
-          if (page === 1) setRecommendations(data.results); else setRecommendations(prev => [...prev, ...data.results]);
-          setPagination(data.pagination);
-          setMetadata(data.metadata);
-          if (page === 1) setCachedResults(cacheKey, data as RecommendationResponse);
-          setLoading(false);
-          return;
+          const data = await response.json();
+          // If function returned a structured RecommendationResponse, use it. Otherwise map colleges -> RecommendationResult
+          if (data && Array.isArray(data.results)) {
+            const recResp: RecommendationResponse = data as RecommendationResponse;
+            if (page === 1) setRecommendations(recResp.results); else setRecommendations(prev => [...prev, ...recResp.results]);
+            setPagination(recResp.pagination);
+            setMetadata(recResp.metadata);
+            if (page === 1) setCachedResults(cacheKey, recResp as RecommendationResponse);
+            setLoading(false);
+            return;
+          }
+
+          if (data && Array.isArray(data.colleges)) {
+            // Map server colleges to RecommendationResult minimal shape
+            const mapped: RecommendationResult[] = data.colleges.map((c: any, idx: number) => {
+              const courseName = (c.programs && c.programs[0]) || (c.courses && c.courses[0]) || 'Course';
+              const collegeLoc = c.latitude && c.longitude ? { lat: Number(c.latitude), lon: Number(c.longitude) } : (c.location && typeof c.location === 'string' ? { lat: location.lat, lon: location.lon } : { lat: location.lat, lon: location.lon });
+              const distance_km = haversineDistance(location.lat, location.lon, collegeLoc.lat, collegeLoc.lon);
+              const final_score = ((c.rating || 4) / 5) * 0.7 + (1 / (1 + distance_km / 10)) * 0.3;
+              return {
+                college: { id: c.id || `srv_${idx}`, name: c.name || c.college || '', location: collegeLoc, city: c.city || '', state: c.state || '', rating: c.rating || 4, type: c.type || 'Private' },
+                course: { id: `${c.id || 'srv'}-0`, name: courseName, description: c.description || '', degree: c.degree || 'B.Tech', fees: parseInt((c.fees || '0').toString().replace(/[^0-9]/g, '')) || 0, seats: c.seats || 0, tags: c.medium || c.tags || [] },
+                distance_km,
+                score_breakdown: { final_score, semantic_score: final_score, text_score: final_score, distance_score: 1 / (1 + distance_km / 10), rating_score: (c.rating || 4) / 5, availability_score: 0 },
+                sources: ['server'],
+                rationale: `${c.name || 'College'} - ${courseName}: ${Math.round(final_score * 100)}% match.`
+              } as RecommendationResult;
+            });
+
+            if (page === 1) setRecommendations(mapped); else setRecommendations(prev => [...prev, ...mapped]);
+            setPagination({ page, pageSize: 10, total: mapped.length, totalPages: 1, hasNext: false });
+            setMetadata({ candidateSources: { geo: mapped.length, text: 0, semantic: 0, merged: mapped.length }, searchParams: { lat: location.lat, lon: location.lon, filters } });
+            if (page === 1) setCachedResults(cacheKey, { results: mapped, pagination: { page, pageSize: 10, total: mapped.length, totalPages: 1, hasNext: false }, metadata: { candidateSources: { geo: mapped.length, text: 0, semantic: 0, merged: mapped.length }, searchParams: { lat: location.lat, lon: location.lon, filters } } } as RecommendationResponse);
+            setLoading(false);
+            return;
+          }
         }
 
         // fall through to localSearch if server returns error
