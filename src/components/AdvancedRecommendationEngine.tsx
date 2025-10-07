@@ -84,7 +84,7 @@ export function AdvancedRecommendationEngine() {
   const [showDebug, setShowDebug] = useState(false);
 
   // Filters state
-  const [maxDistance, setMaxDistance] = useState<number>(100);
+  const [maxDistance, setMaxDistance] = useState<number>(500);
   const [maxFees, setMaxFees] = useState<number>(500000);
   const [minRating, setMinRating] = useState<number>(0);
   const [medium, setMedium] = useState<'any' | 'english' | 'hindi'>('any');
