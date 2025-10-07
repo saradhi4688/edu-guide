@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { Alert, AlertDescription } from './ui/alert';
+import { Button } from './ui/button';
 
 interface User {
   uid: string;
@@ -43,10 +45,17 @@ const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showVerificationPopup, setShowVerificationPopup] = useState(false);
 
   useEffect(() => {
     checkSession();
   }, []);
+
+  useEffect(() => {
+    if (!showVerificationPopup) return;
+    const t = setTimeout(() => setShowVerificationPopup(false), 6000);
+    return () => clearTimeout(t);
+  }, [showVerificationPopup]);
 
   const checkSession = async () => {
     try {
@@ -56,11 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (savedUserData) {
           setUser(JSON.parse(savedUserData));
         } else {
-          // Fetch user profile from server
           await fetchUserProfile(session.access_token);
         }
       } else {
-        // Check for existing temporary session
         const savedUserData = localStorage.getItem('user_data');
         const accessToken = localStorage.getItem('access_token');
         if (savedUserData && accessToken) {
@@ -68,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      // Only log non-auth related errors to avoid console spam
       const isAuthError = error instanceof Error && (
         error.message.includes('403') ||
         error.message.includes('Forbidden') ||
@@ -81,7 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Session check failed - using demo mode:', error instanceof Error ? error.message : 'Unknown error');
       }
       
-      // Check for existing temporary session even if Supabase fails
       const savedUserData = localStorage.getItem('user_data');
       const accessToken = localStorage.getItem('access_token');
       if (savedUserData && accessToken) {
@@ -94,9 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (accessToken: string) => {
     try {
-      // Skip server calls for demo/temp tokens
       if (accessToken === 'demo_token_123' || accessToken?.startsWith('temp_token_') || accessToken?.startsWith('token_')) {
-        // Create a fallback user profile for demo mode
         const email = localStorage.getItem('user_email') || 'user@example.com';
         const fallbackUser: User = {
           uid: 'temp_user_' + Math.random().toString(36).substr(2, 9),
@@ -123,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(userData.user);
         localStorage.setItem('user_data', JSON.stringify(userData.user));
       } else {
-        // Create a fallback user profile if server is not available
         const email = localStorage.getItem('user_email') || 'user@example.com';
         const fallbackUser: User = {
           uid: 'temp_user_' + Math.random().toString(36).substr(2, 9),
@@ -137,7 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user_data', JSON.stringify(fallbackUser));
       }
     } catch (error) {
-      // Silently handle auth errors in demo mode
       const isAuthError = error instanceof Error && (
         error.message.includes('Invalid JWT') || 
         error.message.includes('401') ||
@@ -149,7 +150,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Failed to fetch user profile:', error instanceof Error ? error.message : 'Unknown error');
       }
       
-      // Create a fallback user profile
       const email = localStorage.getItem('user_email') || 'user@example.com';
       const fallbackUser: User = {
         uid: 'temp_user_' + Math.random().toString(36).substr(2, 9),
@@ -168,7 +168,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const allowDemo = (_env.NEXT_PUBLIC_ALLOW_DEMO_ACCOUNTS === 'true') || (_env.VITE_ALLOW_DEMO_ACCOUNTS === 'true');
-      // Demo bypass
       if (allowDemo && ((email === 'demo@eduguide.in' && password === 'demo123') || (email === 'admin@eduguide.in' && password === 'admin123'))) {
         const isAdmin = email === 'admin@eduguide.in';
         const demoUser: User = {
@@ -185,17 +184,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) throw new Error('Please enter a valid email address');
       if (!password || password.length < 6) throw new Error('Password must be at least 6 characters long');
 
-      // Call Supabase SDK
       const { data: { session }, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message || 'Failed to sign in');
 
       if (session?.user) {
-        // Map Supabase user to our User shape
         const su = session.user as any;
         const mapped: User = {
           uid: su.id,
@@ -211,7 +207,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return session;
     } catch (err:any) {
-      // rethrow to UI
       throw err;
     } finally {
       setLoading(false);
@@ -226,12 +221,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!password || password.length < 6) throw new Error('Password must be at least 6 characters long');
       if (!displayName || displayName.trim().length < 2) throw new Error('Please provide a display name');
 
-      // Create user
-      // Note: supabase signUp signature may vary; use options for metadata
       const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { displayName } } } as any);
       if (error) throw new Error(error.message || 'Signup failed');
 
-      // If a user object is returned and account is confirmed, sign in to obtain session
       if (data?.user) {
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw new Error(signInError.message || 'Failed to sign in after signup');
@@ -252,7 +244,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return signInData.session;
       }
 
-      // Otherwise inform about confirmation email
+      setShowVerificationPopup(true);
       return { message: 'Signup successful. Please confirm your email before logging in.' } as any;
     } catch (err:any) {
       throw err;
@@ -280,7 +272,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updatedUser);
     localStorage.setItem('user_data', JSON.stringify(updatedUser));
 
-    // Sync with server (skip for demo/temp tokens)
     try {
       const token = localStorage.getItem('access_token');
       if (token && !token.startsWith('demo_') && !token.startsWith('temp_') && !token.startsWith('token_')) {
@@ -294,7 +285,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
     } catch (error) {
-      // Silently handle sync errors in demo mode
       const isAuthError = error instanceof Error && (
         error.message.includes('Invalid JWT') || 
         error.message.includes('401') ||
@@ -314,6 +304,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout, updateProfile, getAuthToken }}>
+      {showVerificationPopup && (
+        <div className="auth-verification-popup fixed top-4 right-4 z-50 max-w-sm w-full">
+          <Alert>
+            <AlertDescription>Verification mail has been sent. Please confirm it.</AlertDescription>
+            <div className="mt-2 flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => setShowVerificationPopup(false)}>Dismiss</Button>
+            </div>
+          </Alert>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );
