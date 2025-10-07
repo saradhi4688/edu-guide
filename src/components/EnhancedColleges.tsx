@@ -211,6 +211,8 @@ export function EnhancedColleges() {
     } catch (error) {
       console.debug('Location request failed, using fallback');
       setLocationPermission('denied');
+      // set fallback coordinates (Hyderabad)
+      setUserLocation({ lat: 17.3850, lng: 78.4867 });
       toast.info('Using default location. You can still browse all colleges.');
     } finally {
       setIsLocating(false);
