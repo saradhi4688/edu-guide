@@ -60,15 +60,8 @@ export function Login() {
     try {
       await login(demoEmail, demoPass);
       toast.success('Welcome to the demo!');
-      // Ensure we land on the dashboard overview after login
-      try {
-        // Prefer react-router navigate if available in this environment
-        const nav = (await import('react-router-dom')).useNavigate;
-        // If useNavigate hook can't be used here, fallback to setting location
-      } catch (e) {
-        // fallback navigation
-        window.location.href = '/';
-      }
+      // Navigate to dashboard overview
+      try { navigate('/'); } catch (e) { window.location.href = '/'; }
     } catch (error: any) {
       toast.error(error.message || 'Demo login failed. Please try again.');
     } finally {
