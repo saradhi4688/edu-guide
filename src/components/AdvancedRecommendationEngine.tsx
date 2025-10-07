@@ -698,7 +698,7 @@ export function AdvancedRecommendationEngine() {
 
             <div className="flex items-end gap-2">
               <Button onClick={() => generateRecommendations(1)} disabled={loading || !location}>{loading ? 'Generating...' : 'Apply & Generate'}</Button>
-              <Button variant="outline" onClick={() => { setMaxDistance(100); setMaxFees(500000); setMinRating(0); setMedium('any'); setSortBy('match'); }}>Reset</Button>
+              <Button variant="outline" onClick={() => { setMaxDistance(500); setMaxFees(500000); setMinRating(0); setMedium('any'); setSortBy('match'); }}>Reset</Button>
             </div>
           </div>
         </CardContent>
