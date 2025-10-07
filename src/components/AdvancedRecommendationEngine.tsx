@@ -76,6 +76,7 @@ export function AdvancedRecommendationEngine() {
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'loading' | 'granted' | 'denied' | 'unavailable' | 'fallback'>('loading');
   const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0, totalPages: 0, hasNext: false });
