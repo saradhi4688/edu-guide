@@ -167,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const allowDemo = process.env.NEXT_PUBLIC_ALLOW_DEMO_ACCOUNTS === 'true';
+      const allowDemo = (_env.NEXT_PUBLIC_ALLOW_DEMO_ACCOUNTS === 'true') || (_env.VITE_ALLOW_DEMO_ACCOUNTS === 'true');
       // Demo bypass
       if (allowDemo && ((email === 'demo@eduguide.in' && password === 'demo123') || (email === 'admin@eduguide.in' && password === 'admin123'))) {
         const isAdmin = email === 'admin@eduguide.in';
