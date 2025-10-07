@@ -20,22 +20,51 @@ class ApiClient {
 
   async request(endpoint: string, options: RequestInit = {}) {
     const token = localStorage.getItem('access_token');
-    
+
     // Handle demo mode and temporary tokens with mock data
     if (token === 'demo_token_123' || token?.startsWith('temp_token_') || token?.startsWith('token_')) {
       return this.handleDemoRequest(endpoint, options);
     }
 
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
+    // If navigator is offline, immediately fall back to demo data
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.debug('Offline detected — using demo data for', endpoint);
+      return this.handleDemoRequest(endpoint, options);
+    }
+
+    // Small timeout wrapper to avoid hung fetches and noisy errors
+    const safeFetch = async (input: RequestInfo, init?: RequestInit, timeout = 7000) => {
+      if (typeof AbortController === 'undefined') {
+        // Environment doesn't support AbortController; just do a normal fetch
+        return fetch(input, init);
+      }
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(input, { signal: controller.signal, ...init });
+        return response;
+      } finally {
+        clearTimeout(id);
+      }
+    };
+
     try {
-      const response = await fetch(url, {
+      const response = await safeFetch(url, {
         ...options,
         headers: {
           ...this.getAuthHeaders(),
           ...options.headers,
         },
+        // ensure CORS mode where applicable
+        mode: 'cors',
+        credentials: 'omit'
       });
+
+      if (!response || !(response instanceof Response)) {
+        throw new Error('No response from server');
+      }
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}`;
@@ -43,26 +72,22 @@ class ApiClient {
           const errorData = await response.json();
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch {
-          errorMessage = await response.text() || errorMessage;
+          try { errorMessage = await response.text() || errorMessage; } catch {}
         }
         throw new Error(errorMessage);
       }
 
       return response.json();
     } catch (error) {
-      // Silently fall back to demo mode for development
-      // Only log if it's an unexpected error (not auth related)
-      const isAuthError = error instanceof Error && (
-        error.message.includes('Invalid JWT') || 
-        error.message.includes('401') ||
-        error.message.includes('403') ||
-        error.message.includes('Unauthorized')
-      );
-      
+      // Fall back to demo mode for any network or server errors.
+      // Avoid noisy console stack traces by logging succinctly.
+      const message = error instanceof Error ? error.message : String(error);
+      const isAuthError = message.includes('Invalid JWT') || message.includes('401') || message.includes('403') || message.includes('Unauthorized');
+
       if (!isAuthError) {
-        console.warn('Backend unavailable, using demo mode:', error instanceof Error ? error.message : 'Unknown error');
+        console.debug('Backend unavailable — using demo data for', endpoint, '-', message);
       }
-      
+
       return this.handleDemoRequest(endpoint, options);
     }
   }
