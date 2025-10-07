@@ -31,9 +31,10 @@ export function useAuth() {
   return context;
 }
 
-// Initialize Supabase client (anon key only on client)
-const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL) ? process.env.NEXT_PUBLIC_SUPABASE_URL : `https://${projectId}.supabase.co`;
-const SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : publicAnonKey;
+// Guarded environment access (works in both Node and browser/Vite)
+const _env: any = (typeof process !== 'undefined' && process?.env) ? process.env : (typeof import.meta !== 'undefined' && (import.meta as any).env) ? (import.meta as any).env : {};
+const SUPABASE_URL = _env.NEXT_PUBLIC_SUPABASE_URL || _env.VITE_SUPABASE_URL || `https://${projectId}.supabase.co`;
+const SUPABASE_ANON_KEY = _env.NEXT_PUBLIC_SUPABASE_ANON_KEY || _env.VITE_SUPABASE_ANON_KEY || publicAnonKey;
 
 const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true }
