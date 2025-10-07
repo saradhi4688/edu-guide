@@ -411,6 +411,20 @@ export function AdvancedRecommendationEngine() {
 
       // Local search fallback
       const local = localSearch(location.lat, location.lon, { maxDistance, maxFees, minRating, medium }, page, 10);
+      // If no local results found, try relaxed search (nationwide radius) so user sees options
+      if (local.results.length === 0) {
+        const relaxed = localSearch(location.lat, location.lon, { ...{ maxDistance, maxFees, minRating, medium }, maxDistance: 5000 }, page, 10);
+        if (relaxed.results.length > 0) {
+          setRecommendations(relaxed.results);
+          setPagination(relaxed.pagination);
+          setMetadata({ ...relaxed.metadata, relaxed: true });
+          if (page === 1) setCachedResults(cacheKey, relaxed as RecommendationResponse);
+          setInfoMessage('No nearby colleges matched your filters — showing expanded results across a larger radius. You can increase Max Distance to refine.');
+          setLoading(false);
+          return;
+        }
+      }
+
       setRecommendations(local.results);
       setPagination(local.pagination);
       setMetadata(local.metadata);
