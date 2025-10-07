@@ -371,6 +371,7 @@ export function AdvancedRecommendationEngine() {
 
     setLoading(true);
     setError(null);
+    setInfoMessage(null);
 
     try {
       const token = getAuthToken();
