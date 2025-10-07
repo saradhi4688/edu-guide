@@ -474,68 +474,79 @@ export function Dashboard() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Alerts */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              {t('recent_alerts')}
-            </CardTitle>
-            <Link to="/alerts">
-              <Button variant="outline" size="sm">{t('view_all')}</Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {dashboardData.alerts.map((alert, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  alert.urgent ? 'bg-red-500' : 'bg-blue-500'
-                }`} />
-                <div className="flex-1">
-                  <h4 className="font-medium">{alert.title}</h4>
-                  <p className="text-sm text-muted-foreground">{alert.description}</p>
-                  <Badge variant="outline" className="mt-1 text-xs">
-                    {alert.type}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Recommendations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              {t('ai_recommendations')}
-            </CardTitle>
-            <CardDescription>
-              Personalized suggestions based on your profile
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {dashboardData.recommendations.map((rec, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex-1">
-                  <h4 className="font-medium">{rec.title}</h4>
-                  <p className="text-sm text-muted-foreground">{rec.reason}</p>
-                  <Badge variant="outline" className="mt-1 text-xs">
-                    {rec.type}
-                  </Badge>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-green-600">
-                    {rec.match}%
-                  </div>
-                  <div className="text-xs text-muted-foreground">match</div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Advanced features</h2>
+        <div>
+          <Button size="sm" variant="outline" onClick={() => { setShowAdvanced(!showAdvanced); logEvent('dashboard_toggle_advanced', { open: !showAdvanced }); }}>{showAdvanced ? 'Hide' : 'Show'} Advanced</Button>
+        </div>
       </div>
+
+      {showAdvanced ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Alerts */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                {t('recent_alerts')}
+              </CardTitle>
+              <Link to="/alerts">
+                <Button variant="outline" size="sm">{t('view_all')}</Button>
+              </Link>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {dashboardData.alerts.map((alert, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    alert.urgent ? 'bg-red-500' : 'bg-blue-500'
+                  }`} />
+                  <div className="flex-1">
+                    <h4 className="font-medium">{alert.title}</h4>
+                    <p className="text-sm text-muted-foreground">{alert.description}</p>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {alert.type}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Recommendations */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                {t('ai_recommendations')}
+              </CardTitle>
+              <CardDescription>
+                Personalized suggestions based on your profile
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {dashboardData.recommendations.map((rec, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{rec.title}</h4>
+                    <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {rec.type}
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-green-600">
+                      {rec.match}%
+                    </div>
+                    <div className="text-xs text-muted-foreground">match</div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="p-4 text-sm text-muted-foreground">Advanced features hidden. Click 'Show Advanced' to reveal more options.</div>
+      )}
 
       {/* Visual Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
