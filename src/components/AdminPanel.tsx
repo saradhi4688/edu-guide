@@ -57,9 +57,10 @@ export function AdminPanel() {
   function normalizeRecord(r: any) {
     const id = r.id || r.ID || (r.name ? String(r.name).toLowerCase().replace(/[^a-z0-9]+/g, '_') : Math.random().toString(36).slice(2));
     const courses = [] as string[];
-    if (Array.isArray(r.courses)) courses.push(...r.courses);
-    else if (typeof r.courses === 'string') courses.push(...splitListField(r.courses));
-    else if (r.course) courses.push(String(r.course));
+    if (Array.isArray(r.courses)) {
+      r.courses.forEach((c: any) => { if (typeof c === 'string') courses.push(...splitListField(c)); else if (c) courses.push(String(c)); });
+    } else if (typeof r.courses === 'string') courses.push(...splitListField(r.courses));
+    else if (r.course) courses.push(...splitListField(r.course));
 
     return {
       id,
