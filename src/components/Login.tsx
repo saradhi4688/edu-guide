@@ -18,6 +18,7 @@ export function Login() {
   const [signupName, setSignupName] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, signup } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
