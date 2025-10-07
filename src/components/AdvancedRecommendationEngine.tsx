@@ -197,6 +197,171 @@ export function AdvancedRecommendationEngine() {
   // Filter object memoized
   const filters = useMemo(() => ({ maxDistance, maxFees, minRating, medium }), [maxDistance, maxFees, minRating, medium]);
 
+  // Local college database (fallback) - subset copied for client-side search
+  function getLocalCollegeDatabase() {
+    return [
+      {
+        id: 'iit-delhi',
+        name: 'IIT Delhi',
+        type: 'Public',
+        city: 'Delhi',
+        state: 'Delhi',
+        location: { lat: 28.5459, lon: 77.1927 },
+        rating: 4.8,
+        courses: [
+          { id: 'iit-cse', name: 'Computer Science Engineering', description: 'Elite computer science program with cutting-edge research', degree: 'B.Tech', fees: 250000, seats: 60, tags: ['technology', 'programming', 'ai', 'english'] },
+          { id: 'iit-me', name: 'Mechanical Engineering', description: 'Mechanical engineering with modern labs', degree: 'B.Tech', fees: 250000, seats: 80, tags: ['engineering', 'mechanical', 'english'] }
+        ]
+      },
+      {
+        id: 'du-north',
+        name: 'Delhi University (North Campus)',
+        type: 'Public',
+        city: 'Delhi',
+        state: 'Delhi',
+        location: { lat: 28.6895, lon: 77.2123 },
+        rating: 4.3,
+        courses: [
+          { id: 'du-cs', name: 'Computer Science', description: 'Theoretical foundation in computer science with practical applications.', degree: 'B.Sc', fees: 45000, seats: 200, tags: ['computer science', 'mathematics', 'english'] }
+        ]
+      },
+      {
+        id: 'nift-delhi',
+        name: 'NIFT Delhi',
+        type: 'Public',
+        city: 'Delhi',
+        state: 'Delhi',
+        location: { lat: 28.5562, lon: 77.1999 },
+        rating: 4.3,
+        courses: [
+          { id: 'nift-fashion', name: 'Fashion Design', description: 'Creative fashion design program with industry exposure', degree: 'B.Des', fees: 150000, seats: 40, tags: ['design', 'creative', 'english'] }
+        ]
+      },
+      {
+        id: 'amu-aligarh',
+        name: 'Aligarh Muslim University',
+        type: 'Public',
+        city: 'Aligarh',
+        state: 'Uttar Pradesh',
+        location: { lat: 27.8974, lon: 78.0880 },
+        rating: 4.2,
+        courses: [
+          { id: 'amu-medicine', name: 'Medicine', description: 'Comprehensive medical program with excellent clinical training', degree: 'MBBS', fees: 75000, seats: 150, tags: ['medicine', 'healthcare', 'english'] }
+        ]
+      },
+      {
+        id: 'jnu',
+        name: 'Jawaharlal Nehru University',
+        type: 'Public',
+        city: 'Delhi',
+        state: 'Delhi',
+        location: { lat: 28.5385, lon: 77.1667 },
+        rating: 4.4,
+        courses: [
+          { id: 'jnu-ir', name: 'International Relations', description: 'Premier international relations program with global perspective', degree: 'M.A', fees: 30000, seats: 50, tags: ['politics', 'international', 'english'] }
+        ]
+      }
+    ];
+  }
+
+  function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return Math.round(R * c * 10) / 10;
+  }
+
+  function localSearch(lat: number, lon: number, filters: any, page = 1, pageSize = 10): RecommendationResponse {
+    const colleges = getLocalCollegeDatabase();
+    const candidates: RecommendationResult[] = [];
+
+    colleges.forEach(college => {
+      college.courses.forEach((course: any) => {
+        const distance_km = haversineDistance(lat, lon, college.location.lat, college.location.lon);
+        // medium filter: check tags
+        const tagsLower = (course.tags || []).map((t: string) => t.toLowerCase());
+        if (filters.maxDistance && distance_km > filters.maxDistance) return;
+        if (filters.maxFees && course.fees > filters.maxFees) return;
+        if (filters.minRating && college.rating < filters.minRating) return;
+        if (filters.medium && filters.medium !== 'any') {
+          const desired = filters.medium === 'english' ? 'english' : 'hindi';
+          if (!tagsLower.some((t: string) => t.includes(desired))) return;
+        }
+
+        // Simple scoring
+        const distanceScore = 1 / (1 + distance_km / 10);
+        const ratingScore = (college.rating || 3) / 5;
+        const availabilityScore = Math.min(course.seats / 100, 1);
+
+        // Text score: match some keywords
+        const keywords = ['computer', 'engineering', 'data', 'science', 'design', 'medicine'];
+        let textScore = 0;
+        const hay = (course.name + ' ' + (course.description || '') + ' ' + (college.name || '')).toLowerCase();
+        keywords.forEach((k) => { if (hay.includes(k)) textScore += 1; });
+        textScore = Math.min(textScore / 3, 1);
+
+        const semanticScore = textScore; // approximate
+
+        const final_score = (
+          0.35 * semanticScore +
+          0.25 * textScore +
+          0.2 * distanceScore +
+          0.1 * ratingScore +
+          0.05 * availabilityScore
+        );
+
+        const rationale = `${college.name} - ${course.name}: ${Math.round(final_score * 100)}% match. ${college.rating}/5 rating, ${distance_km} km away.`;
+
+        candidates.push({
+          college: {
+            id: college.id,
+            name: college.name,
+            location: college.location,
+            city: college.city,
+            state: college.state,
+            rating: college.rating,
+            type: college.type
+          },
+          course: {
+            id: course.id,
+            name: course.name,
+            description: course.description,
+            degree: course.degree,
+            fees: course.fees,
+            seats: course.seats,
+            tags: course.tags || []
+          },
+          distance_km,
+          score_breakdown: {
+            final_score,
+            semantic_score: semanticScore,
+            text_score: textScore,
+            distance_score: distanceScore,
+            rating_score: ratingScore,
+            availability_score: availabilityScore
+          },
+          sources: ['local_search'],
+          rationale
+        });
+      });
+    });
+
+    // sort and paginate
+    candidates.sort((a, b) => b.score_breakdown.final_score - a.score_breakdown.final_score);
+    const total = candidates.length;
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    const start = (page - 1) * pageSize;
+    const results = candidates.slice(start, start + pageSize);
+
+    return {
+      results,
+      pagination: { page, pageSize, total, totalPages, hasNext: page < totalPages },
+      metadata: { candidateSources: { geo: candidates.length, text: 0, semantic: 0, merged: candidates.length }, searchParams: { lat, lon, filters } }
+    };
+  }
+
   const generateRecommendations = async (page = 1) => {
     if (!location) {
       setError('Location not available. Please enable location services.');
@@ -220,54 +385,39 @@ export function AdvancedRecommendationEngine() {
         return;
       }
 
-      // Demo token branch
-      if (token === 'demo_token_123' || token?.startsWith('temp_token_') || token?.startsWith('token_')) {
-        // replicate previous mock response and apply simple client-side filtering/sorting
-        const mock: RecommendationResponse = ({
-          results: [
-            // ... same mock items as before (kept minimal for brevity)
-          ] as any,
-          pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0, hasNext: false },
-          metadata: { candidateSources: { geo: 0, text: 0, semantic: 0, merged: 0 }, searchParams: { lat: location.lat, lon: location.lon }}
-        } as any);
+      // Try server request
+      try {
+        const response = await fetch(`${getApiUrl()}/api/recommend`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ lat: location.lat, lon: location.lon, page, pageSize: 10, filters: { maxDistance, maxFees, minRating, medium } })
+        });
 
-        // Instead of re-creating, call the existing flow by invoking real generateRecommendations via earlier logic for demo tokens
-        // For simplicity, reuse existing mock flow by calling the network branch above in original file — here we fallback to earlier mock flow by fetching without network.
-        // To keep consistent behavior, call the network function defined earlier by simulating server response using existing code: just call original endpoint behavior is complex; instead, we clear any cache and return early.
-        setRecommendations([]);
-        setPagination({ page: 1, pageSize: 10, total: 0, totalPages: 0, hasNext: false });
-        setMetadata(null);
-        setLoading(false);
-        return;
+        if (response.ok) {
+          const data: RecommendationResponse = await response.json();
+          if (page === 1) setRecommendations(data.results); else setRecommendations(prev => [...prev, ...data.results]);
+          setPagination(data.pagination);
+          setMetadata(data.metadata);
+          if (page === 1) setCachedResults(cacheKey, data as RecommendationResponse);
+          setLoading(false);
+          return;
+        }
+
+        // fall through to localSearch if server returns error
+      } catch (e) {
+        // network/server error - fallback to local search
+        console.warn('Server recommend failed, falling back to local search.', e);
       }
 
-      const response = await fetch(`${getApiUrl()}/api/recommend`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ lat: location.lat, lon: location.lon, page, pageSize: 10, filters: { maxDistance, maxFees, minRating, medium } })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate recommendations');
-      }
-
-      const data: RecommendationResponse = await response.json();
-
-      if (page === 1) setRecommendations(data.results);
-      else setRecommendations(prev => [...prev, ...data.results]);
-
-      setPagination(data.pagination);
-      setMetadata(data.metadata);
-
-      // Cache results for subsequent quick loads
-      if (page === 1) setCachedResults(cacheKey, data as RecommendationResponse);
+      // Local search fallback
+      const local = localSearch(location.lat, location.lon, { maxDistance, maxFees, minRating, medium }, page, 10);
+      setRecommendations(local.results);
+      setPagination(local.pagination);
+      setMetadata(local.metadata);
+      // cache local results
+      if (page === 1) setCachedResults(cacheKey, local as RecommendationResponse);
     } catch (err) {
-      const isAuthError = err instanceof Error && (err.message.includes('401') || err.message.includes('403') || err.message.includes('Unauthorized'));
-      if (!isAuthError) console.error('Error generating recommendations:', err);
+      console.error('Error generating recommendations:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate recommendations');
     } finally {
       setLoading(false);
