@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { 
   Home, 
   User, 
@@ -20,7 +20,6 @@ import {
   Search,
   Building,
   Compass,
-  BookOpen as BookIcon,
   Users,
   Briefcase,
   Lightbulb,
@@ -195,7 +194,6 @@ const navigation = [
 ];
 
 export function Sidebar({ open, onOpenChange }: SidebarProps) {
-  const location = useLocation();
   const { user, logout } = useAuth();
 
   return (
@@ -214,6 +212,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
         size="icon"
         className="fixed top-4 left-4 z-50 lg:hidden"
         onClick={() => onOpenChange(!open)}
+        aria-label={open ? 'Close menu' : 'Open menu'}
       >
         {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
       </Button>
@@ -233,49 +232,48 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-4 space-y-2" aria-label="Main navigation">
             {navigation.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.href;
-              
+
               return (
-                <Link
+                <NavLink
                   key={item.name}
                   to={item.href}
                   onClick={() => onOpenChange(false)}
-                  className={cn(
+                  className={({ isActive }) => cn(
                     "flex items-center px-3 py-2 rounded-lg transition-colors",
                     isActive 
                       ? "bg-primary text-primary-foreground" 
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
+                  
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  <Icon className="mr-3 h-5 w-5" aria-hidden="true" />
                   <span className="flex-1">{item.name}</span>
                   {item.featured && (
                     <Badge variant="secondary" className="text-xs">
                       New
                     </Badge>
                   )}
-                </Link>
+                </NavLink>
               );
             })}
 
             {user?.role === 'admin' && (
-              <Link
+              <NavLink
                 to="/admin"
                 onClick={() => onOpenChange(false)}
-                className={cn(
+                className={({ isActive }) => cn(
                   "flex items-center px-3 py-2 rounded-lg transition-colors",
-                  location.pathname === '/admin' 
-                    ? "bg-primary text-primary-foreground" 
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
+                
               >
-                <Briefcase className="mr-3 h-5 w-5" />
+                <Briefcase className="mr-3 h-5 w-5" aria-hidden="true" />
                 <span className="flex-1">Admin</span>
                 <Badge variant="secondary" className="text-xs">Admin</Badge>
-              </Link>
+              </NavLink>
             )}
           </nav>
 

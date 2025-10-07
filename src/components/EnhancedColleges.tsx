@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { collegeDatabase, filterColleges, getCollegesByState, College } from '../utils/collegeDatabase';
 import { dataStore } from '../utils/dataStore';
-import { getLocationWithStatus, calculateDistance, isLocationAvailable } from '../utils/locationUtils';
+import { getLocationWithStatus, getLocationSafely, calculateDistance, isLocationAvailable, clearLocationCache } from '../utils/locationUtils';
 import { useThemeAwareApi } from './useThemeAwareApi';
 import { LocationHandler } from './LocationHandler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -196,20 +196,25 @@ export function EnhancedColleges() {
 
     setIsLocating(true);
     try {
-      const result = await getLocationWithStatus();
-      setUserLocation(result.location);
-      
-      if (result.status === 'success') {
+      // Force a high-accuracy request with a slightly longer timeout
+      clearLocationCache();
+      const loc = await getLocationSafely({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+
+      // normalize location object to {lat, lng}
+      setUserLocation({ lat: (loc as any).latitude ?? (loc as any).lat, lng: (loc as any).longitude ?? (loc as any).lng });
+
+      if (loc.source === 'gps') {
         setLocationPermission('granted');
-        toast.success(result.message);
+        toast.success('High accuracy location detected');
       } else {
-        setLocationPermission('granted'); // Still set as granted since we have a location
-        toast.info(result.message);
+        setLocationPermission('granted');
+        toast.info('Using best available location (may be approximate)');
       }
     } catch (error) {
-      console.debug('Location request failed, using fallback');
+      console.debug('Location request failed, using fallback', error);
       setLocationPermission('denied');
-      toast.info('Using default location. You can still browse all colleges.');
+      setUserLocation({ lat: 17.3850, lng: 78.4867 });
+      toast.info('Using default location. Please enable location access in your browser for accurate results.');
     } finally {
       setIsLocating(false);
     }
@@ -391,7 +396,11 @@ export function EnhancedColleges() {
               <ExternalLink className="h-3 w-3 mr-1" />
               View Details
             </Button>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${college.latitude},${college.longitude}${userLocation ? `&origin=${userLocation.lat},${userLocation.lng}` : ''}`)}>
+              <Navigation className="h-3 w-3 mr-1" />
+              Get Directions
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => window.open(`tel:${college.phone}`)}>
               <Phone className="h-3 w-3 mr-1" />
               Contact
             </Button>
@@ -416,37 +425,37 @@ export function EnhancedColleges() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Rating</p>
-                <p className="text-2xl font-bold">4.2</p>
+                <p className="text-sm text-muted-foreground">IITs</p>
+                <p className="text-2xl font-bold">{colleges.filter(c => /\biit\b|indian institute of technology/i.test(c.name)).length}</p>
               </div>
               <Star className="h-8 w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Placement</p>
-                <p className="text-2xl font-bold">82%</p>
+                <p className="text-sm text-muted-foreground">NITs</p>
+                <p className="text-2xl font-bold">{colleges.filter(c => /\bnit\b|national institute of technology/i.test(c.name)).length}</p>
               </div>
               <Briefcase className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">States Covered</p>
-                <p className="text-2xl font-bold">15+</p>
+                <p className="text-2xl font-bold">{Array.from(new Set(colleges.map(c => c.state))).length}</p>
               </div>
               <MapPin className="h-8 w-8 text-purple-600" />
             </div>

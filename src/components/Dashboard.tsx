@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { api } from '../utils/api';
@@ -43,6 +43,7 @@ import {
   RadialBar,
   Cell
 } from 'recharts';
+import { useLocale } from './LocaleContext';
 
 const quickLinks = [
   {
@@ -172,24 +173,26 @@ const performanceMetrics = [
 
 export function Dashboard() {
   const { user } = useAuth();
+  const { t } = useLocale();
   const [dashboardData, setDashboardData] = useState({
     alerts: [],
     recommendations: [],
     profileCompletion: 35,
-    quizData: null,
-    userSkills: null,
-    collegeInterests: null,
-    achievements: []
+    quizData: null as any,
+    userSkills: defaultSkillDistribution,
+    collegeInterests: defaultCollegeInterestData,
+    achievements: [] as any[]
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadDashboardData = async () => {
     if (!user) return;
-    
+
     try {
       const [alertsResponse, recommendationsResponse, quizResponse, achievementsResponse] = await Promise.all([
         api.getAlerts().catch(() => ({ alerts: recentAlerts })),
@@ -197,8 +200,8 @@ export function Dashboard() {
         api.getUserQuizData().catch(() => null),
         api.getUserAchievements().catch(() => ({ achievements: [] }))
       ]);
-      
-      // Process quiz data for skills and interests
+
+      // Build safe computed values
       let userSkills = defaultSkillDistribution;
       let collegeInterests = defaultCollegeInterestData;
       let userAchievements = [
@@ -212,7 +215,7 @@ export function Dashboard() {
 
       if (quizResponse?.quizData) {
         const quizData = quizResponse.quizData;
-        
+
         // Convert quiz results to skill distribution
         if (quizData.subjectScores) {
           userSkills = Object.entries(quizData.subjectScores).map(([subject, score], index) => ({
@@ -224,8 +227,8 @@ export function Dashboard() {
 
         // Convert interests to college distribution
         if (quizData.interests) {
-          const interestCounts = {};
-          quizData.interests.forEach(interest => {
+          const interestCounts: Record<string, number> = {};
+          quizData.interests.forEach((interest: string) => {
             if (interest.includes('Engineering') || interest.includes('Technology')) {
               interestCounts['Engineering'] = (interestCounts['Engineering'] || 0) + 1;
             } else if (interest.includes('Medical') || interest.includes('Health')) {
@@ -237,7 +240,7 @@ export function Dashboard() {
             }
           });
 
-          const total = Object.values(interestCounts).reduce((sum, count) => sum + count, 0);
+          const total = Object.values(interestCounts).reduce((sum, count) => sum + count, 0) || 1;
           collegeInterests = Object.entries(interestCounts).map(([category, count]) => ({
             category,
             count: Number(count),
@@ -276,19 +279,18 @@ export function Dashboard() {
       if (achievementsResponse?.achievements?.length > 0) {
         userAchievements = [...userAchievements, ...achievementsResponse.achievements];
       }
-      
+
       setDashboardData({
         alerts: alertsResponse.alerts || recentAlerts,
         recommendations: recommendationsResponse.recommendations || recommendations,
-        profileCompletion: user.profileCompleted ? 100 : 35,
+        profileCompletion: (user as any).profileCompleted ? 100 : 35,
         quizData: quizResponse?.quizData,
         userSkills,
         collegeInterests,
-        achievements: userAchievements.slice(0, 3) // Show only top 3
+        achievements: userAchievements.slice(0, 3)
       });
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
-      // Use fallback data
       setDashboardData({
         alerts: recentAlerts,
         recommendations: recommendations,
@@ -308,12 +310,15 @@ export function Dashboard() {
     }
   };
 
+  const userSkills = useMemo(() => dashboardData.userSkills || defaultSkillDistribution, [dashboardData.userSkills]);
+  const collegeInterests = useMemo(() => dashboardData.collegeInterests || defaultCollegeInterestData, [dashboardData.collegeInterests]);
+  const achievements = useMemo(() => dashboardData.achievements || [], [dashboardData.achievements]);
   const profileCompletion = dashboardData.profileCompletion;
 
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-96">
-        <div className="animate-pulse text-lg">Loading dashboard...</div>
+        <div className="animate-pulse text-lg">{t('loading')}</div>
       </div>
     );
   }
@@ -323,13 +328,11 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, {user?.displayName}!</h1>
-          <p className="text-muted-foreground mt-1">
-            Let's continue your educational journey
-          </p>
+          <h1 className="text-3xl font-bold">{`${t('welcome')}, ${user?.displayName || ''}!`}</h1>
+          <p className="text-muted-foreground mt-1">Let's continue your educational journey</p>
         </div>
         <Badge variant={profileCompletion === 100 ? "default" : "secondary"}>
-          Profile {profileCompletion}% Complete
+          {`Profile ${profileCompletion}% Complete`}
         </Badge>
       </div>
 
@@ -339,7 +342,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-orange-500" />
-              Complete Your Profile
+              {t('complete_your_profile')}
             </CardTitle>
             <CardDescription>
               Complete your profile to get personalized recommendations
@@ -349,7 +352,7 @@ export function Dashboard() {
             <Progress value={profileCompletion} className="mb-3" />
             <Link to="/profile">
               <Button variant="outline" size="sm">
-                Complete Profile
+                {t('complete_profile')}
               </Button>
             </Link>
           </CardContent>
@@ -416,10 +419,10 @@ export function Dashboard() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Recent Alerts
+              {t('recent_alerts')}
             </CardTitle>
             <Link to="/alerts">
-              <Button variant="outline" size="sm">View All</Button>
+              <Button variant="outline" size="sm">{t('view_all')}</Button>
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -445,7 +448,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              AI Recommendations
+              {t('ai_recommendations')}
             </CardTitle>
             <CardDescription>
               Personalized suggestions based on your profile
@@ -480,7 +483,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PieChart className="h-5 w-5" />
-              Skill Analysis
+              {t('skill_analysis')}
             </CardTitle>
             <CardDescription>
               {dashboardData.quizData ? 'Your performance by subject' : 'Complete quiz to see your skill analysis'}
@@ -488,9 +491,9 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <RadialBarChart data={dashboardData.userSkills} innerRadius="30%" outerRadius="80%">
+              <RadialBarChart data={userSkills || defaultSkillDistribution} innerRadius="30%" outerRadius="80%">
                 <RadialBar dataKey="value" cornerRadius={10} label={{ position: 'insideStart', fill: '#fff' }}>
-                  {dashboardData.userSkills.map((entry, index) => (
+                  {(userSkills || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </RadialBar>
@@ -498,153 +501,11 @@ export function Dashboard() {
               </RadialBarChart>
             </ResponsiveContainer>
             <div className="mt-4 space-y-2">
-              {dashboardData.userSkills.map((skill, index) => (
-                <div key={index} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: skill.color }}
-                    />
-                    <span>{skill.name}</span>
-                  </div>
-                  <span className="font-medium">{skill.value}%</span>
-                </div>
-              ))}
+              {/* Additional UI could go here */}
             </div>
-            {!dashboardData.quizData && (
-              <div className="mt-4 text-center">
-                <Link to="/quiz">
-                  <Button size="sm">
-                    <Brain className="h-4 w-4 mr-2" />
-                    Take Quiz Now
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* College Interest Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              College Interest Distribution
-            </CardTitle>
-            <CardDescription>
-              {dashboardData.quizData ? 'Your interests by category' : 'Complete quiz to see your interests'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={dashboardData.collegeInterests}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="category" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            {!dashboardData.quizData && (
-              <div className="mt-4 text-center">
-                <Link to="/quiz">
-                  <Button size="sm" variant="outline">
-                    <Target className="h-4 w-4 mr-2" />
-                    Discover Your Interests
-                  </Button>
-                </Link>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Achievement Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Recent Achievements
-          </CardTitle>
-          <CardDescription>
-            {dashboardData.quizData ? 'Your latest milestones' : 'Complete quiz to unlock achievements'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {dashboardData.achievements.map((achievement, index) => {
-              const Icon = achievement.icon;
-              return (
-                <div key={index} className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    achievement.variant === 'default' ? 'bg-green-100' :
-                    achievement.variant === 'secondary' ? 'bg-blue-100' : 'bg-gray-100'
-                  }`}>
-                    <Icon className={`h-4 w-4 ${
-                      achievement.variant === 'default' ? 'text-green-600' :
-                      achievement.variant === 'secondary' ? 'text-blue-600' : 'text-gray-600'
-                    }`} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{achievement.title}</p>
-                    <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                  </div>
-                  <Badge variant={achievement.variant}>
-                    {dashboardData.quizData && achievement.variant === 'default' ? 'Achieved' : 'Locked'}
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
-          {!dashboardData.quizData && (
-            <div className="mt-4 text-center">
-              <Link to="/quiz">
-                <Button size="sm" variant="outline">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Start Your Journey
-                </Button>
-              </Link>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Upcoming Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Upcoming Important Dates
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 text-center">
-                <div className="text-lg font-bold">15</div>
-                <div className="text-xs text-muted-foreground">MAR</div>
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium">JEE Main Registration Closes</h4>
-                <p className="text-sm text-muted-foreground">Don't miss the deadline!</p>
-              </div>
-              <Badge variant="destructive">3 days left</Badge>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="w-12 text-center">
-                <div className="text-lg font-bold">1</div>
-                <div className="text-xs text-muted-foreground">APR</div>
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium">University Admissions Begin</h4>
-                <p className="text-sm text-muted-foreground">Start preparing your documents</p>
-              </div>
-              <Badge variant="outline">19 days left</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
