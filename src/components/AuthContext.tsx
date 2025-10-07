@@ -309,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {typeof document !== 'undefined' && showVerificationPopup && createPortal(
         <div className="auth-verification-popup fixed top-4 right-4 z-50 max-w-sm w-full">
           <Alert>
-            <AlertDescription>Verification mail has been sent. Please confirm it.</AlertDescription>
+            <AlertDescription>Mail sent — please click the link in the email and come back to this page.</AlertDescription>
             <div className="mt-2 flex justify-end">
               <Button variant="outline" size="sm" onClick={() => setShowVerificationPopup(false)}>Dismiss</Button>
             </div>
