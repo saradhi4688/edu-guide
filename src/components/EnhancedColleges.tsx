@@ -197,7 +197,9 @@ export function EnhancedColleges() {
     setIsLocating(true);
     try {
       const result = await getLocationWithStatus();
-      setUserLocation(result.location);
+      // normalize location object to {lat, lng}
+      const loc = result.location;
+      setUserLocation({ lat: (loc as any).latitude ?? (loc as any).lat, lng: (loc as any).longitude ?? (loc as any).lng });
       
       if (result.status === 'success') {
         setLocationPermission('granted');
