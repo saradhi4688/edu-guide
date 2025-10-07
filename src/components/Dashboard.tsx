@@ -453,7 +453,7 @@ export function Dashboard() {
         {quickLinks.map((link) => {
           const Icon = link.icon;
           return (
-            <Link key={link.title} to={link.href}>
+            <Link key={link.title} to={link.href} onClick={() => logEvent('quicklink_click', { href: link.href, title: link.title })}>
               <Card className="hover:shadow-md transition-all duration-200 hover:scale-105 cursor-pointer group">
                 <CardHeader className="pb-3">
                   <div className={`w-12 h-12 rounded-xl ${link.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200`}>
