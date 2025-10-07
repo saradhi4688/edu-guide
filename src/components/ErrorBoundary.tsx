@@ -55,7 +55,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {(((typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') || ((typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.MODE === 'development')))) && this.state.error && (
                 <div className="p-3 bg-muted rounded-md">
                   <p className="text-sm font-mono text-muted-foreground">
                     {this.state.error.message}
