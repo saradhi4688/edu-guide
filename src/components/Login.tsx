@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
+import { useNavigate } from 'react-router-dom';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
