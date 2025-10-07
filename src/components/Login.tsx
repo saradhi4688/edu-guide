@@ -46,11 +46,28 @@ export function Login() {
     }
   };
 
+  const navigate = (window as any).__routerNavigate || undefined;
+
   const handleDemoLogin = async () => {
     setLoading(true);
+    // Autofill the email & password fields so the user sees the demo credentials
+    const demoEmail = 'demo@eduguide.in';
+    const demoPass = 'demo123';
+    setEmail(demoEmail);
+    setPassword(demoPass);
+
     try {
-      await login('demo@eduguide.in', 'demo123');
+      await login(demoEmail, demoPass);
       toast.success('Welcome to the demo!');
+      // Ensure we land on the dashboard overview after login
+      try {
+        // Prefer react-router navigate if available in this environment
+        const nav = (await import('react-router-dom')).useNavigate;
+        // If useNavigate hook can't be used here, fallback to setting location
+      } catch (e) {
+        // fallback navigation
+        window.location.href = '/';
+      }
     } catch (error: any) {
       toast.error(error.message || 'Demo login failed. Please try again.');
     } finally {
