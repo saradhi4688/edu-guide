@@ -166,103 +166,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Special handling for demo account
-      if (email === 'demo@eduguide.in' && password === 'demo123') {
+      const allowDemo = process.env.NEXT_PUBLIC_ALLOW_DEMO_ACCOUNTS === 'true';
+      // Demo bypass
+      if (allowDemo && ((email === 'demo@eduguide.in' && password === 'demo123') || (email === 'admin@eduguide.in' && password === 'admin123'))) {
+        const isAdmin = email === 'admin@eduguide.in';
         const demoUser: User = {
-          uid: 'demo_user_123',
-          email: email,
-          displayName: 'Demo Student',
-          role: 'student',
-          profileCompleted: true,
-          locale: 'en'
-        };
-      // Demo admin account
-      if (email === 'admin@eduguide.in' && password === 'admin123') {
-        const adminUser: User = {
-          uid: 'demo_admin_001',
-          email: email,
-          displayName: 'Admin',
-          role: 'admin',
-          profileCompleted: true,
-          locale: 'en'
-        };
-        setUser(adminUser);
-        localStorage.setItem('access_token', 'demo_token_admin');
-        localStorage.setItem('user_email', email);
-        localStorage.setItem('user_data', JSON.stringify(adminUser));
-        return;
-      }
-        
-        setUser(demoUser);
-        localStorage.setItem('access_token', 'demo_token_123');
-        localStorage.setItem('user_email', email);
-        localStorage.setItem('user_data', JSON.stringify(demoUser));
-        return;
-      }
-
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        throw new Error('Please enter a valid email address');
-      }
-
-      // Password validation
-      if (!password || password.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
-      }
-
-      // For development: Simple password validation
-      // In production, this would validate against Supabase
-      if (password === 'password' || password === '123456' || password === 'admin') {
-        throw new Error('Password too weak. Please use a stronger password');
-      }
-
-      // Create user session for valid credentials
-      const tempUser: User = {
-        uid: 'user_' + Math.random().toString(36).substr(2, 9),
-        email: email,
-        displayName: email.split('@')[0],
-        role: 'student',
-        profileCompleted: false,
-        locale: 'en'
-      };
-      
-      const tempToken = 'token_' + tempUser.uid;
-      setUser(tempUser);
-      localStorage.setItem('access_token', tempToken);
-      localStorage.setItem('user_email', email);
-      localStorage.setItem('user_data', JSON.stringify(tempUser));
-
-      // Original Supabase authentication (commented out for demo)
-      /*
-      try {
-        const { data: { session }, error } = await supabase.auth.signInWithPassword({
+          uid: isAdmin ? 'demo_admin_001' : 'demo_user_123',
           email,
-          password
-        });
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        if (session) {
-          localStorage.setItem('access_token', session.access_token);
-          localStorage.setItem('user_email', email);
-          
-          // Fetch or create user profile
-          await fetchUserProfile(session.access_token);
-        }
-      } catch (authError) {
-        // If Supabase auth fails, create a temporary session for development
-        console.warn('Supabase auth failed, creating temporary session:', authError);
-        const tempToken = 'temp_token_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('access_token', tempToken);
-        localStorage.setItem('user_email', email);
-        await fetchUserProfile(tempToken);
+          displayName: isAdmin ? 'Admin' : 'Demo Student',
+          role: isAdmin ? 'admin' : 'student',
+          profileCompleted: true,
+          locale: 'en'
+        };
+        setUser(demoUser);
+        try { localStorage.setItem('user_data', JSON.stringify(demoUser)); } catch {}
+        localStorage.setItem('access_token', isAdmin ? 'demo_token_admin' : 'demo_token_123');
+        return;
       }
-      */
-    } catch (error) {
-      throw error;
+
+      // Validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) throw new Error('Please enter a valid email address');
+      if (!password || password.length < 6) throw new Error('Password must be at least 6 characters long');
+
+      // Call Supabase SDK
+      const { data: { session }, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(error.message || 'Failed to sign in');
+
+      if (session?.user) {
+        // Map Supabase user to our User shape
+        const su = session.user as any;
+        const mapped: User = {
+          uid: su.id,
+          email: su.email || email,
+          displayName: (su.user_metadata && (su.user_metadata.displayName || su.user_metadata.full_name)) || su.email?.split('@')[0] || '',
+          role: 'student',
+          profileCompleted: false,
+          locale: 'en'
+        };
+        setUser(mapped);
+        try { localStorage.setItem('user_data', JSON.stringify(mapped)); } catch {}
+      }
+
+      return session;
+    } catch (err:any) {
+      // rethrow to UI
+      throw err;
     } finally {
       setLoading(false);
     }
