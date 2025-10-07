@@ -664,7 +664,7 @@ export function AdvancedRecommendationEngine() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="text-sm">Max Distance (km)</label>
-              <input type="range" min={5} max={500} value={maxDistance} onChange={(e) => setMaxDistance(Number(e.target.value))} className="w-full" />
+              <input type="range" min={5} max={5000} value={maxDistance} onChange={(e) => setMaxDistance(Number(e.target.value))} className="w-full" />
               <div className="text-xs text-muted-foreground mt-1">{maxDistance} km</div>
             </div>
 
