@@ -196,24 +196,25 @@ export function EnhancedColleges() {
 
     setIsLocating(true);
     try {
-      const result = await getLocationWithStatus();
+      // Force a high-accuracy request with a slightly longer timeout
+      clearLocationCache();
+      const loc = await getLocationSafely({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+
       // normalize location object to {lat, lng}
-      const loc = result.location;
       setUserLocation({ lat: (loc as any).latitude ?? (loc as any).lat, lng: (loc as any).longitude ?? (loc as any).lng });
-      
-      if (result.status === 'success') {
+
+      if (loc.source === 'gps') {
         setLocationPermission('granted');
-        toast.success(result.message);
+        toast.success('High accuracy location detected');
       } else {
-        setLocationPermission('granted'); // Still set as granted since we have a location
-        toast.info(result.message);
+        setLocationPermission('granted');
+        toast.info('Using best available location (may be approximate)');
       }
     } catch (error) {
-      console.debug('Location request failed, using fallback');
+      console.debug('Location request failed, using fallback', error);
       setLocationPermission('denied');
-      // set fallback coordinates (Hyderabad)
       setUserLocation({ lat: 17.3850, lng: 78.4867 });
-      toast.info('Using default location. You can still browse all colleges.');
+      toast.info('Using default location. Please enable location access in your browser for accurate results.');
     } finally {
       setIsLocating(false);
     }
