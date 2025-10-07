@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { collegeDatabase, filterColleges, getCollegesByState, College } from '../utils/collegeDatabase';
 import { dataStore } from '../utils/dataStore';
-import { getLocationWithStatus, calculateDistance, isLocationAvailable } from '../utils/locationUtils';
+import { getLocationWithStatus, getLocationSafely, calculateDistance, isLocationAvailable, clearLocationCache } from '../utils/locationUtils';
 import { useThemeAwareApi } from './useThemeAwareApi';
 import { LocationHandler } from './LocationHandler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
