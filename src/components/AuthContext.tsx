@@ -31,106 +31,13 @@ export function useAuth() {
   return context;
 }
 
-// Create Supabase client
-function createSupabaseClient() {
-  return {
-    auth: {
-      async signInWithPassword(credentials: { email: string; password: string }) {
-        const response = await fetch(`https://${projectId}.supabase.co/auth/v1/token?grant_type=password`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': publicAnonKey,
-          },
-          body: JSON.stringify(credentials),
-        });
+// Initialize Supabase client (anon key only on client)
+const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL) ? process.env.NEXT_PUBLIC_SUPABASE_URL : `https://${projectId}.supabase.co`;
+const SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : publicAnonKey;
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error_description || 'Login failed');
-        }
-
-        const data = await response.json();
-        return {
-          data: {
-            session: {
-              access_token: data.access_token,
-              user: data.user
-            }
-          },
-          error: null
-        };
-      },
-
-      async signOut() {
-        const token = localStorage.getItem('access_token');
-        if (!token) return { error: null };
-
-        try {
-          await fetch(`https://${projectId}.supabase.co/auth/v1/logout`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'apikey': publicAnonKey,
-            },
-          });
-        } catch (error) {
-          console.error('Logout error:', error);
-        }
-
-        return { error: null };
-      },
-
-      async getSession() {
-        const token = localStorage.getItem('access_token');
-        if (!token) return { data: { session: null }, error: null };
-
-        // Skip Supabase calls for demo/temp tokens
-        if (token === 'demo_token_123' || token?.startsWith('temp_token_') || token?.startsWith('token_')) {
-          return { data: { session: null }, error: null };
-        }
-
-        try {
-          const response = await fetch(`https://${projectId}.supabase.co/auth/v1/user`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'apikey': publicAnonKey,
-            },
-          });
-
-          if (!response.ok) {
-            // Only remove tokens if it's not a demo/temp token
-            if (!token.startsWith('demo_') && !token.startsWith('temp_') && !token.startsWith('token_')) {
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('user_data');
-            }
-            return { data: { session: null }, error: null };
-          }
-
-          const userData = await response.json();
-          return {
-            data: {
-              session: {
-                access_token: token,
-                user: userData
-              }
-            },
-            error: null
-          };
-        } catch (error) {
-          // Only remove tokens if it's not a demo/temp token
-          if (!token.startsWith('demo_') && !token.startsWith('temp_') && !token.startsWith('token_')) {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user_data');
-          }
-          return { data: { session: null }, error: null };
-        }
-      }
-    }
-  };
-}
-
-const supabase = createSupabaseClient();
+const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true }
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
