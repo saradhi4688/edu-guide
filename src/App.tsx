@@ -122,7 +122,8 @@ function AppRoutes() {
 export default function App() {
   // Keep console suppression as before
   React.useEffect(() => {
-    if (process.env.NODE_ENV === 'production') {
+    const _mode = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) ? process.env.NODE_ENV : (typeof import.meta !== 'undefined' && (import.meta as any).env ? (import.meta as any).env.MODE : undefined);
+    if (_mode === 'production') {
       const originalWarn = console.warn;
       const originalError = console.error;
 

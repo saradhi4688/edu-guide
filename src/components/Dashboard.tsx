@@ -44,6 +44,8 @@ import {
   Cell
 } from 'recharts';
 import { useLocale } from './LocaleContext';
+import GuidedTour from './GuidedTour';
+import { logEvent } from '../utils/telemetry';
 
 const quickLinks = [
   {
@@ -184,6 +186,10 @@ export function Dashboard() {
     achievements: [] as any[]
   });
   const [loading, setLoading] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Log dashboard view for lightweight telemetry
+  useEffect(() => { try { logEvent('dashboard_view'); } catch (e) {} }, []);
 
   useEffect(() => {
     loadDashboardData();
@@ -336,7 +342,7 @@ export function Dashboard() {
         </Badge>
       </div>
 
-      {/* Profile Completion */}
+      {/* Profile Completion (and Onboarding) */}
       {profileCompletion < 100 && (
         <Card className="border-orange-200 bg-orange-50/50">
           <CardHeader>
@@ -350,7 +356,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <Progress value={profileCompletion} className="mb-3" />
-            <Link to="/profile">
+            <Link to="/profile" onClick={() => logEvent('onboarding_click', { action: 'complete_profile' })}>
               <Button variant="outline" size="sm">
                 {t('complete_profile')}
               </Button>
@@ -358,6 +364,60 @@ export function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Guided Tour (first-run) */}
+      <GuidedTour />
+
+      {/* Onboarding checklist / Getting Started */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Getting Started</CardTitle>
+          <CardDescription>Follow these steps to quickly get value from the app</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ul className="space-y-2">
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Complete Profile</div>
+                <div className="text-sm text-muted-foreground">Add academics & preferences</div>
+              </div>
+              <div>
+                {profileCompletion >= 100 ? <Badge variant="default">Done</Badge> : <Link to="/profile" onClick={() => logEvent('onboarding_click', { action: 'complete_profile' })}><Button size="sm">Go</Button></Link>}
+              </div>
+            </li>
+
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Take Aptitude Quiz</div>
+                <div className="text-sm text-muted-foreground">Understand your strengths</div>
+              </div>
+              <div>
+                {dashboardData.quizData ? <Badge variant="default">Done</Badge> : <Link to="/quiz" onClick={() => logEvent('onboarding_click', { action: 'take_quiz' })}><Button size="sm">Start</Button></Link>}
+              </div>
+            </li>
+
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Generate Recommendations</div>
+                <div className="text-sm text-muted-foreground">Find colleges & courses near you</div>
+              </div>
+              <div>
+                <Link to="/advanced-recommendation-engine" onClick={() => logEvent('onboarding_click', { action: 'generate_recs' })}><Button size="sm">Try</Button></Link>
+              </div>
+            </li>
+
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Explore Streams & Courses</div>
+                <div className="text-sm text-muted-foreground">Save courses you like</div>
+              </div>
+              <div>
+                <Link to="/streams" onClick={() => logEvent('onboarding_click', { action: 'explore_streams' })}><Button size="sm">Explore</Button></Link>
+              </div>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -392,7 +452,7 @@ export function Dashboard() {
         {quickLinks.map((link) => {
           const Icon = link.icon;
           return (
-            <Link key={link.title} to={link.href}>
+            <Link key={link.title} to={link.href} onClick={() => logEvent('quicklink_click', { href: link.href, title: link.title })}>
               <Card className="hover:shadow-md transition-all duration-200 hover:scale-105 cursor-pointer group">
                 <CardHeader className="pb-3">
                   <div className={`w-12 h-12 rounded-xl ${link.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200`}>
@@ -413,68 +473,79 @@ export function Dashboard() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Alerts */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              {t('recent_alerts')}
-            </CardTitle>
-            <Link to="/alerts">
-              <Button variant="outline" size="sm">{t('view_all')}</Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {dashboardData.alerts.map((alert, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  alert.urgent ? 'bg-red-500' : 'bg-blue-500'
-                }`} />
-                <div className="flex-1">
-                  <h4 className="font-medium">{alert.title}</h4>
-                  <p className="text-sm text-muted-foreground">{alert.description}</p>
-                  <Badge variant="outline" className="mt-1 text-xs">
-                    {alert.type}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Recommendations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              {t('ai_recommendations')}
-            </CardTitle>
-            <CardDescription>
-              Personalized suggestions based on your profile
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {dashboardData.recommendations.map((rec, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex-1">
-                  <h4 className="font-medium">{rec.title}</h4>
-                  <p className="text-sm text-muted-foreground">{rec.reason}</p>
-                  <Badge variant="outline" className="mt-1 text-xs">
-                    {rec.type}
-                  </Badge>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-green-600">
-                    {rec.match}%
-                  </div>
-                  <div className="text-xs text-muted-foreground">match</div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Advanced features</h2>
+        <div>
+          <Button size="sm" variant="outline" onClick={() => { setShowAdvanced(!showAdvanced); logEvent('dashboard_toggle_advanced', { open: !showAdvanced }); }}>{showAdvanced ? 'Hide' : 'Show'} Advanced</Button>
+        </div>
       </div>
+
+      {showAdvanced ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Alerts */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                {t('recent_alerts')}
+              </CardTitle>
+              <Link to="/alerts">
+                <Button variant="outline" size="sm">{t('view_all')}</Button>
+              </Link>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {dashboardData.alerts.map((alert, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    alert.urgent ? 'bg-red-500' : 'bg-blue-500'
+                  }`} />
+                  <div className="flex-1">
+                    <h4 className="font-medium">{alert.title}</h4>
+                    <p className="text-sm text-muted-foreground">{alert.description}</p>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {alert.type}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Recommendations */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                {t('ai_recommendations')}
+              </CardTitle>
+              <CardDescription>
+                Personalized suggestions based on your profile
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {dashboardData.recommendations.map((rec, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{rec.title}</h4>
+                    <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {rec.type}
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-green-600">
+                      {rec.match}%
+                    </div>
+                    <div className="text-xs text-muted-foreground">match</div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="p-4 text-sm text-muted-foreground">Advanced features hidden. Click 'Show Advanced' to reveal more options.</div>
+      )}
 
       {/* Visual Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

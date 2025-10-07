@@ -36,165 +36,35 @@ interface SidebarProps {
 }
 
 const navigation = [
-  { 
-    name: 'Dashboard', 
-    href: '/', 
-    icon: Home,
-    description: 'Overview & Analytics',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-    gradient: 'from-blue-500 to-cyan-500'
-  },
-  { 
-    name: 'Profile', 
-    href: '/profile', 
-    icon: User,
-    description: 'Personal Information',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100',
-    gradient: 'from-purple-500 to-pink-500'
-  },
-  { 
-    name: 'Aptitude Quiz', 
-    href: '/quiz', 
-    icon: Brain,
-    description: 'Skill Assessment',
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
-    gradient: 'from-green-500 to-emerald-500'
-  },
-  { 
-    name: 'Smart Recommendations', 
-    href: '/advanced-recommendation-engine', 
-    icon: Zap,
-    description: 'AI-Powered Matching',
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100',
-    gradient: 'from-yellow-500 to-orange-500',
-    featured: true
-  },
-  { 
-    name: 'Streams & Courses', 
-    href: '/streams', 
-    icon: BookOpen,
-    description: 'Academic Programs',
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-100',
-    gradient: 'from-indigo-500 to-blue-500'
-  },
-  { 
-    name: 'College Finder', 
-    href: '/colleges', 
-    icon: GraduationCap,
-    description: 'Explore Institutions',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
-    gradient: 'from-orange-500 to-red-500'
-  },
-  { 
-    name: 'Career Paths', 
-    href: '/careers', 
-    icon: TrendingUp,
-    description: 'Future Opportunities',
-    color: 'text-teal-600',
-    bgColor: 'bg-teal-100',
-    gradient: 'from-teal-500 to-cyan-500'
-  },
-  { 
-    name: 'Awareness Center', 
-    href: '/awareness', 
-    icon: Lightbulb,
-    description: 'Clear Confusion & Myths',
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-100',
-    gradient: 'from-amber-500 to-yellow-500',
-    featured: true
-  },
-  { 
-    name: 'Knowledge Quiz', 
-    href: '/awareness-quiz', 
-    icon: HelpCircle,
-    description: 'Test Your Understanding',
-    color: 'text-rose-600',
-    bgColor: 'bg-rose-100',
-    gradient: 'from-rose-500 to-pink-500'
-  },
-  { 
-    name: 'Achievements', 
-    href: '/achievements', 
-    icon: Award,
-    description: 'Badges & Points',
-    color: 'text-fuchsia-600',
-    bgColor: 'bg-fuchsia-100',
-    gradient: 'from-fuchsia-500 to-pink-500'
-  },
-  {
-    name: 'Financial Aid',
-    href: '/financial-aid',
-    icon: Search,
-    description: 'Find scholarships',
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-100',
-    gradient: 'from-emerald-500 to-teal-500'
-  },
-  {
-    name: 'Mentorship',
-    href: '/mentorship',
-    icon: Users,
-    description: 'Connect with mentors',
-    color: 'text-cyan-600',
-    bgColor: 'bg-cyan-100',
-    gradient: 'from-cyan-500 to-blue-500'
-  },
-  {
-    name: 'Progress Tracker',
-    href: '/progress',
-    icon: BarChart3,
-    description: 'Track your growth',
-    color: 'text-sky-600',
-    bgColor: 'bg-sky-100',
-    gradient: 'from-sky-500 to-indigo-500'
-  },
-  {
-    name: 'Skill Gap Analysis',
-    href: '/skills',
-    icon: Target,
-    description: 'Analyze your skills',
-    color: 'text-stone-600',
-    bgColor: 'bg-stone-100',
-    gradient: 'from-stone-500 to-gray-500'
-  },
-  {
-    name: 'For Parents',
-    href: '/parent',
-    icon: Users,
-    description: 'Parental guidance',
-    color: 'text-lime-600',
-    bgColor: 'bg-lime-100',
-    gradient: 'from-lime-500 to-green-500'
-  },
-  {
-    name: 'Predictive Analytics',
-    href: '/predictive',
-    icon: Sparkles,
-    description: 'Future career insights',
-    color: 'text-violet-600',
-    bgColor: 'bg-violet-100',
-    gradient: 'from-violet-500 to-purple-500'
-  },
-  { 
-    name: 'Alerts', 
-    href: '/alerts', 
-    icon: Bell,
-    description: 'Important Updates',
-    color: 'text-red-600',
-    bgColor: 'bg-red-100',
-    gradient: 'from-red-500 to-pink-500'
-  },
+  { name: 'Dashboard', href: '/', icon: Home, section: 'essentials' },
+  { name: 'Profile', href: '/profile', icon: User, section: 'essentials' },
+  { name: 'Aptitude Quiz', href: '/quiz', icon: Brain, section: 'essentials' },
+  { name: 'Smart Recommendations', href: '/advanced-recommendation-engine', icon: Zap, section: 'essentials', featured: true },
+  { name: 'Streams & Courses', href: '/streams', icon: BookOpen, section: 'essentials' },
+  { name: 'College Finder', href: '/colleges', icon: GraduationCap, section: 'essentials' },
+
+  { name: 'Career Paths', href: '/careers', icon: TrendingUp, section: 'advanced' },
+  { name: 'Awareness Center', href: '/awareness', icon: Lightbulb, section: 'advanced', featured: true },
+  { name: 'Knowledge Quiz', href: '/awareness-quiz', icon: HelpCircle, section: 'advanced' },
+  { name: 'Achievements', href: '/achievements', icon: Award, section: 'advanced' },
+  { name: 'Financial Aid', href: '/financial-aid', icon: Search, section: 'advanced' },
+  { name: 'Mentorship', href: '/mentorship', icon: Users, section: 'advanced' },
+  { name: 'Progress Tracker', href: '/progress', icon: BarChart3, section: 'advanced' },
+  { name: 'Skill Gap Analysis', href: '/skills', icon: Target, section: 'advanced' },
+  { name: 'For Parents', href: '/parent', icon: Users, section: 'advanced' },
+  { name: 'Predictive Analytics', href: '/predictive', icon: Sparkles, section: 'advanced' },
+  { name: 'Alerts', href: '/alerts', icon: Bell, section: 'advanced' }
 ];
+
+import { useState } from 'react';
+import { logEvent } from '../utils/telemetry';
 
 export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const { user, logout } = useAuth();
+  const [showMore, setShowMore] = useState(false);
+
+  const essentials = navigation.filter(n => n.section === 'essentials');
+  const advanced = navigation.filter(n => n.section === 'advanced');
 
   return (
     <>
@@ -233,42 +103,66 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2" aria-label="Main navigation">
-            {navigation.map((item) => {
+            {essentials.map((item) => {
               const Icon = item.icon;
-
               return (
                 <NavLink
                   key={item.name}
                   to={item.href}
-                  onClick={() => onOpenChange(false)}
+                  onClick={() => { onOpenChange(false); logEvent('nav_click', { href: item.href, name: item.name }); }}
                   className={({ isActive }) => cn(
                     "flex items-center px-3 py-2 rounded-lg transition-colors",
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
+                    isActive
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
-                  
                 >
                   <Icon className="mr-3 h-5 w-5" aria-hidden="true" />
                   <span className="flex-1">{item.name}</span>
                   {item.featured && (
-                    <Badge variant="secondary" className="text-xs">
-                      New
-                    </Badge>
+                    <Badge variant="secondary" className="text-xs">New</Badge>
                   )}
                 </NavLink>
               );
             })}
 
+            <div className="mt-2 border-t pt-2">
+              <button aria-expanded={showMore} className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent" onClick={() => { setShowMore(!showMore); logEvent('sidebar_toggle_more', { open: !showMore }); }}>
+                {showMore ? 'Show less' : 'More features'}
+              </button>
+
+              {showMore && (
+                <div className="mt-2 space-y-1">
+                  {advanced.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => { onOpenChange(false); logEvent('nav_click', { href: item.href, name: item.name }); }}
+                        className={({ isActive }) => cn(
+                          "flex items-center px-3 py-2 rounded-lg transition-colors",
+                          isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        <Icon className="mr-3 h-4 w-4" aria-hidden="true" />
+                        <span className="flex-1 text-sm">{item.name}</span>
+                        {item.featured && <Badge variant="secondary" className="text-xs">New</Badge>}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {user?.role === 'admin' && (
               <NavLink
                 to="/admin"
-                onClick={() => onOpenChange(false)}
+                onClick={() => { onOpenChange(false); logEvent('nav_click', { href: '/admin', name: 'Admin' }); }}
                 className={({ isActive }) => cn(
                   "flex items-center px-3 py-2 rounded-lg transition-colors",
                   isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
-                
               >
                 <Briefcase className="mr-3 h-5 w-5" aria-hidden="true" />
                 <span className="flex-1">Admin</span>
