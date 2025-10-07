@@ -503,6 +503,7 @@ export function AdvancedRecommendationEngine() {
       </div>
 
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+      {infoMessage && <Alert><AlertDescription>{infoMessage}</AlertDescription></Alert>}
 
       {/* Filter panel */}
       <Card>
