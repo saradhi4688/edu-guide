@@ -220,85 +220,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, displayName: string) => {
     setLoading(true);
     try {
-      // For development/demo purposes, allow any email/password combination
-      // In production, this would use proper Supabase authentication
-      if (email && password && displayName) {
-        const tempUser: User = {
-          uid: 'temp_user_' + Math.random().toString(36).substr(2, 9),
-          email: email,
-          displayName,
-          role: 'student',
-          profileCompleted: false,
-          locale: 'en'
-        };
-        
-        const tempToken = 'temp_token_' + tempUser.uid;
-        setUser(tempUser);
-        localStorage.setItem('access_token', tempToken);
-        localStorage.setItem('user_email', email);
-        localStorage.setItem('user_data', JSON.stringify(tempUser));
-        return;
-      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) throw new Error('Please enter a valid email address');
+      if (!password || password.length < 6) throw new Error('Password must be at least 6 characters long');
+      if (!displayName || displayName.trim().length < 2) throw new Error('Please provide a display name');
 
-      // Original Supabase signup (commented out for demo)
-      /*
-      try {
-        // Use server signup endpoint for proper user creation
-        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-f040132c/auth/signup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            displayName,
-          }),
-        });
+      // Create user
+      // Note: supabase signUp signature may vary; use options for metadata
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { displayName } } } as any);
+      if (error) throw new Error(error.message || 'Signup failed');
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Signup failed');
+      // If a user object is returned and account is confirmed, sign in to obtain session
+      if (data?.user) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw new Error(signInError.message || 'Failed to sign in after signup');
+        const session = signInData.session;
+        if (session?.user) {
+          const su = session.user as any;
+          const mapped: User = {
+            uid: su.id,
+            email: su.email || email,
+            displayName: (su.user_metadata && (su.user_metadata.displayName || su.user_metadata.full_name)) || su.email?.split('@')[0] || displayName,
+            role: 'student',
+            profileCompleted: false,
+            locale: 'en'
+          };
+          setUser(mapped);
+          try { localStorage.setItem('user_data', JSON.stringify(mapped)); } catch {}
         }
-
-        const { user: newUser, access_token } = await response.json();
-        
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('user_email', email);
-        
-        const userData: User = {
-          uid: newUser.id,
-          email: newUser.email,
-          displayName,
-          role: 'student',
-          profileCompleted: false,
-          locale: 'en'
-        };
-        
-        setUser(userData);
-        localStorage.setItem('user_data', JSON.stringify(userData));
-      } catch (signupError) {
-        // If server signup fails, create a temporary account for development
-        console.warn('Server signup failed, creating temporary account:', signupError);
-        const tempUser: User = {
-          uid: 'temp_user_' + Math.random().toString(36).substr(2, 9),
-          email: email,
-          displayName,
-          role: 'student',
-          profileCompleted: false,
-          locale: 'en'
-        };
-        
-        const tempToken = 'temp_token_' + tempUser.uid;
-        localStorage.setItem('access_token', tempToken);
-        localStorage.setItem('user_email', email);
-        localStorage.setItem('user_data', JSON.stringify(tempUser));
-        setUser(tempUser);
+        return signInData.session;
       }
-      */
-    } catch (error) {
-      throw error;
+
+      // Otherwise inform about confirmation email
+      return { message: 'Signup successful. Please confirm your email before logging in.' } as any;
+    } catch (err:any) {
+      throw err;
     } finally {
       setLoading(false);
     }
