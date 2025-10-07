@@ -416,37 +416,37 @@ export function EnhancedColleges() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Rating</p>
-                <p className="text-2xl font-bold">4.2</p>
+                <p className="text-sm text-muted-foreground">IITs</p>
+                <p className="text-2xl font-bold">{colleges.filter(c => /\biit\b|indian institute of technology/i.test(c.name)).length}</p>
               </div>
               <Star className="h-8 w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Placement</p>
-                <p className="text-2xl font-bold">82%</p>
+                <p className="text-sm text-muted-foreground">NITs</p>
+                <p className="text-2xl font-bold">{colleges.filter(c => /\bnit\b|national institute of technology/i.test(c.name)).length}</p>
               </div>
               <Briefcase className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">States Covered</p>
-                <p className="text-2xl font-bold">15+</p>
+                <p className="text-2xl font-bold">{Array.from(new Set(colleges.map(c => c.state))).length}</p>
               </div>
               <MapPin className="h-8 w-8 text-purple-600" />
             </div>
