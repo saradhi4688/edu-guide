@@ -44,6 +44,9 @@ import {
   Cell
 } from 'recharts';
 import { useLocale } from './LocaleContext';
+import GuidedTour from './GuidedTour';
+import { logEvent } from '../utils/telemetry';
+import { useState } from 'react';
 
 const quickLinks = [
   {
