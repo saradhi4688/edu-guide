@@ -391,7 +391,11 @@ export function EnhancedColleges() {
               <ExternalLink className="h-3 w-3 mr-1" />
               View Details
             </Button>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${college.latitude},${college.longitude}${userLocation ? `&origin=${userLocation.lat},${userLocation.lng}` : ''}`)}>
+              <Navigation className="h-3 w-3 mr-1" />
+              Get Directions
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => window.open(`tel:${college.phone}`)}>
               <Phone className="h-3 w-3 mr-1" />
               Contact
             </Button>
