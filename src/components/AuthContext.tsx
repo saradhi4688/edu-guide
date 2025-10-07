@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
+import { createPortal } from 'react-dom';
 
 interface User {
   uid: string;
@@ -304,7 +305,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout, updateProfile, getAuthToken }}>
-      {showVerificationPopup && (
+      {children}
+      {typeof document !== 'undefined' && showVerificationPopup && createPortal(
         <div className="auth-verification-popup fixed top-4 right-4 z-50 max-w-sm w-full">
           <Alert>
             <AlertDescription>Verification mail has been sent. Please confirm it.</AlertDescription>
@@ -312,9 +314,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               <Button variant="outline" size="sm" onClick={() => setShowVerificationPopup(false)}>Dismiss</Button>
             </div>
           </Alert>
-        </div>
+        </div>,
+        document.body
       )}
-      {children}
     </AuthContext.Provider>
   );
 }
