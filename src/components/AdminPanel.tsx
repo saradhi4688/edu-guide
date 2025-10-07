@@ -230,6 +230,54 @@ export function AdminPanel() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Bulk Import Colleges</CardTitle>
+          <CardDescription>Upload a JSON or CSV file to seed colleges locally (client-only). This works on the free plan and stores data in your browser.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <input id="college-file-input" type="file" accept=".json,.csv" onChange={(e) => handleFileUpload(e.target.files?.[0] || null)} className="border rounded-md p-2" />
+
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleExport}>Export JSON</Button>
+              <Button size="sm" variant="outline" onClick={handleClear}>Clear Imported</Button>
+              <Button size="sm" variant="ghost" onClick={() => {
+                const sample = [
+                  {
+                    id: 'sample_college_1',
+                    name: 'Sample Institute of Technology',
+                    address: '123 Sample Rd',
+                    city: 'Sample City',
+                    state: 'Sample State',
+                    latitude: 12.9716,
+                    longitude: 77.5946,
+                    rating: 4.2,
+                    website: 'https://example.edu',
+                    phone: '+91-0000000000',
+                    courses: ['Computer Science Engineering;Mechanical Engineering'],
+                    fees: '₹1.2 LPA',
+                    admissionStatus: 'Open',
+                    type: 'Private',
+                    specializations: ['AI','ML'],
+                    facilities: ['Library','Hostels']
+                  }
+                ];
+                const blob = new Blob([JSON.stringify(sample, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'colleges_sample.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+              }}>Download Sample</Button>
+            </div>
+          </div>
+
+          <div className="text-sm text-muted-foreground">Imported colleges in browser: <strong>{importCount}</strong></div>
+          {status && <div className="text-sm">{status}</div>}
+
+          <div className="text-xs text-muted-foreground">Notes: JSON should be an array of college objects or an object with a 'colleges' array. CSV should include headers like id,name,city,state,latitude,longitude,courses (semicolon-separated),fees.</div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
