@@ -343,7 +343,7 @@ export function Dashboard() {
         </Badge>
       </div>
 
-      {/* Profile Completion */}
+      {/* Profile Completion (and Onboarding) */}
       {profileCompletion < 100 && (
         <Card className="border-orange-200 bg-orange-50/50">
           <CardHeader>
@@ -357,7 +357,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <Progress value={profileCompletion} className="mb-3" />
-            <Link to="/profile">
+            <Link to="/profile" onClick={() => logEvent('onboarding_click', { action: 'complete_profile' })}>
               <Button variant="outline" size="sm">
                 {t('complete_profile')}
               </Button>
@@ -365,6 +365,60 @@ export function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Guided Tour (first-run) */}
+      <GuidedTour />
+
+      {/* Onboarding checklist / Getting Started */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Getting Started</CardTitle>
+          <CardDescription>Follow these steps to quickly get value from the app</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ul className="space-y-2">
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Complete Profile</div>
+                <div className="text-sm text-muted-foreground">Add academics & preferences</div>
+              </div>
+              <div>
+                {profileCompletion >= 100 ? <Badge variant="default">Done</Badge> : <Link to="/profile" onClick={() => logEvent('onboarding_click', { action: 'complete_profile' })}><Button size="sm">Go</Button></Link>}
+              </div>
+            </li>
+
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Take Aptitude Quiz</div>
+                <div className="text-sm text-muted-foreground">Understand your strengths</div>
+              </div>
+              <div>
+                {dashboardData.quizData ? <Badge variant="default">Done</Badge> : <Link to="/quiz" onClick={() => logEvent('onboarding_click', { action: 'take_quiz' })}><Button size="sm">Start</Button></Link>}
+              </div>
+            </li>
+
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Generate Recommendations</div>
+                <div className="text-sm text-muted-foreground">Find colleges & courses near you</div>
+              </div>
+              <div>
+                <Link to="/advanced-recommendation-engine" onClick={() => logEvent('onboarding_click', { action: 'generate_recs' })}><Button size="sm">Try</Button></Link>
+              </div>
+            </li>
+
+            <li className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Explore Streams & Courses</div>
+                <div className="text-sm text-muted-foreground">Save courses you like</div>
+              </div>
+              <div>
+                <Link to="/streams" onClick={() => logEvent('onboarding_click', { action: 'explore_streams' })}><Button size="sm">Explore</Button></Link>
+              </div>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
