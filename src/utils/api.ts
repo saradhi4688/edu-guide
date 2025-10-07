@@ -10,10 +10,12 @@ export function getApiUrl(): string {
 class ApiClient {
   private getAuthHeaders() {
     const token = localStorage.getItem('access_token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token || publicAnonKey}`,
-    };
+    const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+    // Only send Authorization header when we have a real user access token (not demo/token placeholders)
+    if (token && token !== 'demo_token_123' && !token.startsWith('temp_token_') && !token.startsWith('token_')) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
   }
 
   async request(endpoint: string, options: RequestInit = {}) {
