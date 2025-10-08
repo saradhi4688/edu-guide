@@ -626,6 +626,14 @@ export function AdvancedRecommendationEngine() {
                   <div className="text-center"><div className="text-2xl font-bold text-purple-600">{metadata.candidateSources?.semantic ?? 0}</div><div className="text-sm text-muted-foreground">Semantic Matches</div></div>
                   <div className="text-center"><div className="text-2xl font-bold text-orange-600">{metadata.candidateSources?.merged ?? 0}</div><div className="text-sm text-muted-foreground">Total Candidates</div></div>
                 </div>
+                {/* Pagination summary */}
+                {pagination && typeof pagination.total === 'number' && pagination.total > 0 && (
+                  <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    <div>Page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong></div>
+                    <div>•</div>
+                    <div><strong>{pagination.total}</strong> colleges</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
