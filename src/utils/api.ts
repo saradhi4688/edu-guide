@@ -34,13 +34,13 @@ class ApiClient {
       return this.handleDemoRequest(endpoint, options);
     }
 
-    // Small timeout wrapper to avoid hung fetches and noisy errors. Falls back to XHR when fetch is unavailable or patched.
+    // Small timeout wrapper to avoid hung fetches and noisy errors.
+    // Prefer XHR first to avoid calling window.fetch directly when it may be patched (FullStory) and throw synchronously.
     const safeFetch = async (input: RequestInfo, init?: RequestInit, timeout = 7000) => {
       const urlStr = typeof input === 'string' ? input : String(input);
       const method = (init && init.method) ? String(init.method).toUpperCase() : 'GET';
       const body = init && (init as any).body ? (init as any).body : null;
 
-      // xhr fallback implementation
       const xhrFetch = (url: string, opt: RequestInit = {}, t = 7000) => new Promise<any>((resolve, reject) => {
         try {
           const xhr = new XMLHttpRequest();
@@ -64,39 +64,36 @@ class ApiClient {
           xhr.ontimeout = () => reject(new Error('XHR timeout'));
           xhr.onerror = () => reject(new Error('XHR network error'));
 
-          if (body) {
-            xhr.send(body as any);
-          } else {
-            xhr.send();
-          }
+          if (body) xhr.send(body as any); else xhr.send();
         } catch (e) {
           reject(e);
         }
       });
 
-      // Try fetch first; if it fails (or returns null), try XHR as a more robust fallback
+      // Try XHR first to avoid triggering a patched fetch implementation that throws synchronously
       try {
-        if (typeof AbortController === 'undefined') {
-          try {
-            return await fetch(input, init);
-          } catch (err) {
-            console.debug('safeFetch: fetch failed (no AbortController), falling back to XHR:', err instanceof Error ? err.message : String(err));
-            try { return await xhrFetch(urlStr, { headers: init?.headers }, timeout); } catch (e) { console.debug('safeFetch: xhr failed too', e); return null as unknown as Response; }
-          }
-        }
-
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
         try {
+          const r = await xhrFetch(urlStr, { headers: init?.headers }, timeout);
+          return r;
+        } catch (xhrErr) {
+          // If XHR fails (rare), fall back to fetch with AbortController
           try {
-            const response = await fetch(input, { signal: controller.signal, ...init });
-            return response;
-          } catch (err) {
-            console.debug('safeFetch: fetch failed, falling back to XHR:', err instanceof Error ? err.message : String(err));
-            try { return await xhrFetch(urlStr, { headers: init?.headers }, timeout); } catch (e) { console.debug('safeFetch: xhr failed too', e); return null as unknown as Response; }
+            if (typeof AbortController === 'undefined') {
+              return await fetch(input, init);
+            }
+
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+              const response = await fetch(input, { signal: controller.signal, ...init });
+              return response;
+            } finally {
+              clearTimeout(id);
+            }
+          } catch (fetchErr) {
+            console.debug('safeFetch: both XHR and fetch failed', xhrErr, fetchErr);
+            return null as unknown as Response;
           }
-        } finally {
-          clearTimeout(id);
         }
       } catch (e) {
         console.debug('safeFetch: unexpected error', e);
