@@ -5,8 +5,9 @@ import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
-import { Brain, Clock, Sparkles, Zap, Target, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { Brain, Clock, Sparkles, Zap, Target, ChevronRight, Lightbulb, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
+import { generateQuizWeaver, QuizWeaverProfile, QuizWeaverOutput } from '../utils/quizWeaver';
 
 interface UserProfile {
   age: number;
@@ -32,6 +33,9 @@ interface QuizQuestion {
   }[];
   adaptiveLevel: 'basic' | 'intermediate' | 'advanced';
   contextualWeight: number;
+  difficulty?: 'easy' | 'moderate' | 'hard';
+  hint?: string;
+  questionType?: 'mcq' | 'scenario' | 'reasoning';
 }
 
 interface AIQuizGeneratorProps {
@@ -62,6 +66,8 @@ export function AIQuizGenerator({ userProfile, onQuizComplete }: AIQuizGenerator
   const [isGenerating, setIsGenerating] = useState(true);
   const [timeLeft, setTimeLeft] = useState(1200); // 20 minutes for personalized quiz
   const [quizStarted, setQuizStarted] = useState(false);
+  const [useQuizWeaver, setUseQuizWeaver] = useState(true); // Toggle for new ML-based system
+  const [quizWeaverOutput, setQuizWeaverOutput] = useState<QuizWeaverOutput | null>(null);
 
   useEffect(() => {
     generatePersonalizedQuiz();
@@ -80,10 +86,53 @@ export function AIQuizGenerator({ userProfile, onQuizComplete }: AIQuizGenerator
     // Simulate AI quiz generation based on user profile
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const personalizedQuestions = createPersonalizedQuestions(userProfile);
-    setQuestions(personalizedQuestions);
+    if (useQuizWeaver && userProfile.interests.length > 0) {
+      // Use the new QuizWeaver ML-based system
+      const quizWeaverProfile: QuizWeaverProfile = {
+        name: userProfile.location || 'Student',
+        age: userProfile.age,
+        interests: userProfile.interests,
+        goal: userProfile.careerGoals || 'learn new concepts',
+        preferred_difficulty: userProfile.age < 14 ? 'easy' : userProfile.age < 20 ? 'moderate' : 'hard'
+      };
+      
+      const weaverOutput = generateQuizWeaver(quizWeaverProfile);
+      setQuizWeaverOutput(weaverOutput);
+      
+      // Convert QuizWeaver questions to our format
+      const convertedQuestions: QuizQuestion[] = weaverOutput.questions.map((q, index) => ({
+        id: index + 1,
+        question: q.question,
+        category: q.category || 'general',
+        relevantInterests: userProfile.interests,
+        options: q.options.map((opt, i) => ({
+          value: `option_${i}`,
+          label: opt,
+          score: q.correct_answer === i ? 5 : Math.max(1, 3 - Math.abs((q.correct_answer || 0) - i))
+        })),
+        adaptiveLevel: q.difficulty === 'easy' ? 'basic' : q.difficulty === 'hard' ? 'advanced' : 'intermediate',
+        contextualWeight: q.difficulty === 'hard' ? 1.5 : q.difficulty === 'moderate' ? 1.3 : 1.1,
+        difficulty: q.difficulty,
+        hint: q.hint,
+        questionType: q.type
+      }));
+      
+      // If QuizWeaver generates less than 5 questions, add from original generator
+      if (convertedQuestions.length < 5) {
+        const additionalQuestions = createPersonalizedQuestions(userProfile);
+        convertedQuestions.push(...additionalQuestions.slice(0, 5 - convertedQuestions.length));
+      }
+      
+      setQuestions(convertedQuestions);
+      toast.success(`🎯 QuizWeaver: Personalized quiz created!`);
+    } else {
+      // Use original system
+      const personalizedQuestions = createPersonalizedQuestions(userProfile);
+      setQuestions(personalizedQuestions);
+      toast.success('Your personalized quiz has been generated!');
+    }
+    
     setIsGenerating(false);
-    toast.success('Your personalized quiz has been generated!');
   };
 
   const createPersonalizedQuestions = (profile: UserProfile): QuizQuestion[] => {
@@ -601,9 +650,24 @@ export function AIQuizGenerator({ userProfile, onQuizComplete }: AIQuizGenerator
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
-            <Badge variant="outline" className="text-xs">
-              {question.category} • {question.adaptiveLevel}
-            </Badge>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="text-xs">
+                {question.category} • {question.adaptiveLevel}
+              </Badge>
+              {question.difficulty && (
+                <Badge 
+                  variant={question.difficulty === 'easy' ? 'default' : question.difficulty === 'hard' ? 'destructive' : 'secondary'}
+                  className="text-xs"
+                >
+                  {question.difficulty}
+                </Badge>
+              )}
+              {question.questionType && (
+                <Badge variant="outline" className="text-xs">
+                  {question.questionType === 'mcq' ? '📝' : question.questionType === 'scenario' ? '🎭' : '🤔'} {question.questionType}
+                </Badge>
+              )}
+            </div>
             <Badge variant="secondary" className="text-xs">
               Weight: {question.contextualWeight}x
             </Badge>
@@ -611,12 +675,19 @@ export function AIQuizGenerator({ userProfile, onQuizComplete }: AIQuizGenerator
           <CardTitle className="text-xl">
             {question.question}
           </CardTitle>
+          {question.hint && (
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg flex items-start gap-2">
+              <Lightbulb className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium">Hint:</span> {question.hint}
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <RadioGroup
             value={answers[question.id] || ""}
             onValueChange={(value) => handleAnswer(question.id, value)}
-            className="space-y-3"
           >
             {question.options.map((option) => (
               <div key={option.value} className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50">

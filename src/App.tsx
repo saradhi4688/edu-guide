@@ -30,6 +30,7 @@ const FinancialAidFinder = React.lazy(() => import('./components/FinancialAidFin
 const ExpertConnect = React.lazy(() => import('./components/ExpertConnect').then(m => ({ default: m.ExpertConnect })));
 const SkillGapAnalyzer = React.lazy(() => import('./components/SkillGapAnalyzer').then(m => ({ default: m.SkillGapAnalyzer })));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
+const QuizWeaverDemo = React.lazy(() => import('./components/QuizWeaverDemo').then(m => ({ default: m.QuizWeaverDemo })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -126,6 +127,7 @@ function AppRoutes() {
           <Route path="/experts" element={<ExpertConnect />} />
           <Route path="/skills" element={<SkillGapAnalyzer />} />
           <Route path="/admin" element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/" replace />} />
+          <Route path="/quiz-weaver-demo" element={<QuizWeaverDemo />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
