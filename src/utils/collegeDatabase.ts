@@ -1895,6 +1895,8 @@ export const collegeDatabase: College[] = [
     photos: ['vignanae1.jpg', 'vignanae2.jpg']
   }];
 
+export const COLLEGE_COUNT = collegeDatabase.length;
+
 // Function to filter colleges based on user preferences
 export const filterColleges = (
   colleges: College[],
