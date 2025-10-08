@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
+import { useNavigate } from 'react-router-dom';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -17,6 +18,7 @@ export function Login() {
   const [signupName, setSignupName] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, signup } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,13 +48,39 @@ export function Login() {
     }
   };
 
+
   const handleDemoLogin = async () => {
     setLoading(true);
+    // Immediately create a local demo session and navigate to the dashboard
+    const demoEmail = 'demo@eduguide.in';
+    const demoUser = {
+      uid: 'demo_user_123',
+      email: demoEmail,
+      displayName: 'Demo Student',
+      role: 'student',
+      profileCompleted: true,
+      locale: 'en'
+    };
+
     try {
-      await login('demo@eduguide.in', 'demo123');
-      toast.success('Welcome to the demo!');
-    } catch (error: any) {
-      toast.error(error.message || 'Demo login failed. Please try again.');
+      // Autofill visible fields
+      setEmail(demoEmail);
+      setPassword('demo123');
+
+      // Persist demo session locally so app treats user as authenticated
+      localStorage.setItem('user_data', JSON.stringify(demoUser));
+      localStorage.setItem('access_token', 'demo_token_123');
+
+      // Notify AuthProvider to pick up the new session immediately
+      try { window.dispatchEvent(new CustomEvent('edu:authChange')); } catch {}
+
+      toast.success('Entering demo mode...');
+
+      // Navigate to dashboard overview
+      try { navigate('/'); } catch (e) { window.location.href = '/'; }
+    } catch (err) {
+      console.error('Failed to start demo session:', err);
+      toast.error('Demo login failed. Please try again.');
     } finally {
       setLoading(false);
     }

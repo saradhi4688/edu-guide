@@ -621,7 +621,7 @@ export function EnhancedColleges() {
         <div>
           <h1 className="text-3xl font-bold">Explore Colleges</h1>
           <p className="text-muted-foreground mt-1">
-            Discover {colleges.length} colleges across India with detailed information
+            Discover {collegeDatabase.length} colleges in our database — showing {colleges.length} results
           </p>
         </div>
         

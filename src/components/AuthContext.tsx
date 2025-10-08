@@ -52,6 +52,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkSession();
   }, []);
 
+  // Listen for cross-component auth changes (e.g. demo login) and pick up localStorage updates
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const saved = localStorage.getItem('user_data');
+        const token = localStorage.getItem('access_token');
+        if (saved && token) {
+          setUser(JSON.parse(saved));
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    };
+    window.addEventListener('edu:authChange', handler);
+    return () => window.removeEventListener('edu:authChange', handler);
+  }, []);
+
   useEffect(() => {
     if (!showVerificationPopup) return;
     const t = setTimeout(() => setShowVerificationPopup(false), 6000);
