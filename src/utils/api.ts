@@ -34,31 +34,73 @@ class ApiClient {
       return this.handleDemoRequest(endpoint, options);
     }
 
-    // Small timeout wrapper to avoid hung fetches and noisy errors
+    // Small timeout wrapper to avoid hung fetches and noisy errors. Falls back to XHR when fetch is unavailable or patched.
     const safeFetch = async (input: RequestInfo, init?: RequestInit, timeout = 7000) => {
-      if (typeof AbortController === 'undefined') {
-        try {
-          return await fetch(input, init);
-        } catch (err) {
-          // Convert to null so request() handles fallback uniformly
-          console.debug('safeFetch: fetch failed (no AbortController):', err instanceof Error ? err.message : String(err));
-          return null as unknown as Response;
-        }
-      }
+      const urlStr = typeof input === 'string' ? input : String(input);
+      const method = (init && init.method) ? String(init.method).toUpperCase() : 'GET';
+      const body = init && (init as any).body ? (init as any).body : null;
 
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeout);
-      try {
+      // xhr fallback implementation
+      const xhrFetch = (url: string, opt: RequestInit = {}, t = 7000) => new Promise<any>((resolve, reject) => {
         try {
-          const response = await fetch(input, { signal: controller.signal, ...init });
-          return response;
-        } catch (err) {
-          // Swallow fetch-level TypeError (network/CORS) and return null so caller falls back to demo data
-          console.debug('safeFetch: fetch failed:', err instanceof Error ? err.message : String(err));
-          return null as unknown as Response;
+          const xhr = new XMLHttpRequest();
+          xhr.open(method, url, true);
+          xhr.timeout = t;
+
+          const headers = (opt.headers || {}) as Record<string,string>;
+          Object.keys(headers).forEach((k) => {
+            try { xhr.setRequestHeader(k, headers[k]); } catch (e) {}
+          });
+
+          xhr.onreadystatechange = () => {
+            if (xhr.readyState === 4) {
+              const status = xhr.status || 0;
+              const text = xhr.responseText || '';
+              const ok = status >= 200 && status < 300;
+              resolve({ ok, status, json: async () => JSON.parse(text || '{}'), text: async () => text } as unknown as Response);
+            }
+          };
+
+          xhr.ontimeout = () => reject(new Error('XHR timeout'));
+          xhr.onerror = () => reject(new Error('XHR network error'));
+
+          if (body) {
+            xhr.send(body as any);
+          } else {
+            xhr.send();
+          }
+        } catch (e) {
+          reject(e);
         }
-      } finally {
-        clearTimeout(id);
+      });
+
+      // Try fetch first; if it fails (or returns null), try XHR as a more robust fallback
+      try {
+        if (typeof AbortController === 'undefined') {
+          try {
+            return await fetch(input, init);
+          } catch (err) {
+            console.debug('safeFetch: fetch failed (no AbortController), falling back to XHR:', err instanceof Error ? err.message : String(err));
+            try { return await xhrFetch(urlStr, { headers: init?.headers }, timeout); } catch (e) { console.debug('safeFetch: xhr failed too', e); return null as unknown as Response; }
+          }
+        }
+
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+          try {
+            const response = await fetch(input, { signal: controller.signal, ...init });
+            return response;
+          } catch (err) {
+            console.debug('safeFetch: fetch failed, falling back to XHR:', err instanceof Error ? err.message : String(err));
+            try { return await xhrFetch(urlStr, { headers: init?.headers }, timeout); } catch (e) { console.debug('safeFetch: xhr failed too', e); return null as unknown as Response; }
+          }
+        } finally {
+          clearTimeout(id);
+        }
+      } catch (e) {
+        console.debug('safeFetch: unexpected error', e);
+        return null as unknown as Response;
       }
     };
 
