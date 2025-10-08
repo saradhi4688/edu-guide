@@ -50,6 +50,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkSession();
+
+    // Listen to Supabase auth state changes and refresh profile when signing in
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      try {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // ensure token and user id are used to refresh profile
+          fetchUserProfile(session.access_token, session.user.id);
+        }
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          try { localStorage.removeItem('user_data'); } catch {}
+        }
+      } catch (e) {
+        // ignore listener errors
+      }
+    });
+
+    return () => {
+      try { listener?.subscription.unsubscribe(); } catch (e) {}
+    };
   }, []);
 
   // Listen for cross-component auth changes (e.g. demo login) and pick up localStorage updates
@@ -83,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (savedUserData) {
           setUser(JSON.parse(savedUserData));
         } else {
-          await fetchUserProfile(session.access_token);
+          await fetchUserProfile(session.access_token, session.user?.id);
         }
       } else {
         const savedUserData = localStorage.getItem('user_data');
@@ -221,6 +241,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         setUser(mapped);
         try { localStorage.setItem('user_data', JSON.stringify(mapped)); } catch {}
+        try { if (session.access_token) localStorage.setItem('access_token', session.access_token); } catch {}
+
+        // Refresh profile from server (public.profiles) to pick up role or other persisted attributes
+        try {
+          await fetchUserProfile(session.access_token, session.user?.id);
+        } catch (e) {
+          // ignore fetch profile errors, keep mapped user as fallback
+        }
       }
 
       return session;
@@ -258,6 +286,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           setUser(mapped);
           try { localStorage.setItem('user_data', JSON.stringify(mapped)); } catch {}
+          try { if (session.access_token) localStorage.setItem('access_token', session.access_token); } catch {}
+
+          try {
+            await fetchUserProfile(session.access_token, session.user?.id);
+          } catch (e) {
+            // ignore
+          }
         }
         return signInData.session;
       }
