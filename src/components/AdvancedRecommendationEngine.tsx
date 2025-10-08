@@ -109,7 +109,27 @@ export function AdvancedRecommendationEngine() {
         setLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
         setLocationStatus('granted');
       },
-      () => {
+      async () => {
+        // Attempt IP-based geolocation as a better fallback than a fixed city
+        try {
+          setLocationStatus('loading');
+          const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          const id = controller ? setTimeout(() => controller.abort(), 5000) : null;
+          const res = await fetch('https://ipapi.co/json/', { signal: controller ? controller.signal : undefined });
+          if (id) clearTimeout(id);
+          if (res && res.ok) {
+            const j = await res.json();
+            const lat = parseFloat(j.latitude) || parseFloat(j.lat) || 0;
+            const lon = parseFloat(j.longitude) || parseFloat(j.lon) || 0;
+            if (lat && lon) {
+              setLocation({ lat, lon });
+              setLocationStatus('fallback');
+              return;
+            }
+          }
+        } catch (e) {
+          // ignore and fall through to hardcoded fallback
+        }
         setLocationStatus('fallback');
         setLocation({ lat: 28.6139, lon: 77.2090 });
       },
