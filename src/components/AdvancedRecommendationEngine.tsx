@@ -701,7 +701,16 @@ export function AdvancedRecommendationEngine() {
                 );
               })}
 
-              {pagination.hasNext && (<div className="text-center"><Button onClick={loadMore} disabled={loading} variant="outline">{loading ? 'Loading...' : `Load More (${pagination.total - recommendations.length} remaining)`}</Button></div>)}
+              {pagination.hasNext && (
+                <div className="text-center">
+                  <Button onClick={loadMore} disabled={loading} variant="outline">
+                    {loading ? 'Loading...' : `Load More (Page ${pagination.page + 1} of ${pagination.totalPages})`}
+                  </Button>
+                  {typeof pagination.total === 'number' && (
+                    <div className="text-xs text-muted-foreground mt-2">{Math.max(0, pagination.total - (pagination.page * pagination.pageSize))} remaining</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
