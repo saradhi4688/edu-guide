@@ -101,6 +101,29 @@ export function AdvancedRecommendationEngine() {
     getCurrentLocation();
   }, []);
 
+  // Whenever location changes, try to reverse geocode to a human-readable place name
+  useEffect(() => {
+    let mounted = true;
+    async function reverse() {
+      if (!location) return;
+      try {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const id = controller ? setTimeout(() => controller.abort(), 5000) : null;
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${location.lat}&lon=${location.lon}` , { signal: controller ? controller.signal : undefined });
+        if (id) clearTimeout(id);
+        if (res && res.ok) {
+          const j = await res.json();
+          const name = j.display_name || (j.address && (j.address.city || j.address.town || j.address.village || j.address.state || j.address.country));
+          if (mounted) setPlaceName(name || null);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    reverse();
+    return () => { mounted = false; };
+  }, [location]);
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setLocationStatus('unavailable');
