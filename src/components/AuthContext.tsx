@@ -221,6 +221,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         setUser(mapped);
         try { localStorage.setItem('user_data', JSON.stringify(mapped)); } catch {}
+        try { if (session.access_token) localStorage.setItem('access_token', session.access_token); } catch {}
+
+        // Refresh profile from server (public.profiles) to pick up role or other persisted attributes
+        try {
+          await fetchUserProfile(session.access_token);
+        } catch (e) {
+          // ignore fetch profile errors, keep mapped user as fallback
+        }
       }
 
       return session;
@@ -258,6 +266,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           setUser(mapped);
           try { localStorage.setItem('user_data', JSON.stringify(mapped)); } catch {}
+          try { if (session.access_token) localStorage.setItem('access_token', session.access_token); } catch {}
+
+          try {
+            await fetchUserProfile(session.access_token);
+          } catch (e) {
+            // ignore
+          }
         }
         return signInData.session;
       }
