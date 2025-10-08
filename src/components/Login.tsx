@@ -71,6 +71,9 @@ export function Login() {
       localStorage.setItem('user_data', JSON.stringify(demoUser));
       localStorage.setItem('access_token', 'demo_token_123');
 
+      // Notify AuthProvider to pick up the new session immediately
+      try { window.dispatchEvent(new CustomEvent('edu:authChange')); } catch {}
+
       toast.success('Entering demo mode...');
 
       // Navigate to dashboard overview
