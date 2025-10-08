@@ -48,7 +48,6 @@ export function Login() {
     }
   };
 
-  const navigate = (window as any).__routerNavigate || undefined;
 
   const handleDemoLogin = async () => {
     setLoading(true);
