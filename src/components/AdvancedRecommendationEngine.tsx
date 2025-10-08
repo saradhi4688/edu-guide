@@ -72,7 +72,7 @@ interface DebugInfo {
 }
 
 export function AdvancedRecommendationEngine() {
-  const { user, getAuthToken } = useAuth();
+  const { user, getAuthToken, updateProfile } = useAuth();
   const [recommendations, setRecommendations] = useState<RecommendationResult[]>([]);
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -83,6 +83,10 @@ export function AdvancedRecommendationEngine() {
   const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0, totalPages: 0, hasNext: false });
   const [metadata, setMetadata] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [placeName, setPlaceName] = useState<string | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [manualLocationInput, setManualLocationInput] = useState('');
+  const [savingLocation, setSavingLocation] = useState(false);
 
   // Filters state
   const [maxDistance, setMaxDistance] = useState<number>(500);
@@ -117,7 +121,7 @@ export function AdvancedRecommendationEngine() {
           const id = controller ? setTimeout(() => controller.abort(), 5000) : null;
           const res = await fetch('https://ipapi.co/json/', { signal: controller ? controller.signal : undefined });
           if (id) clearTimeout(id);
-          if (res && res.ok) {
+                if (res && res.ok) {
             const j = await res.json();
             const lat = parseFloat(j.latitude) || parseFloat(j.lat) || 0;
             const lon = parseFloat(j.longitude) || parseFloat(j.lon) || 0;
@@ -551,12 +555,106 @@ export function AdvancedRecommendationEngine() {
 
         {/* Location indicators */}
         {locationStatus === 'loading' && <div className="flex items-center justify-center gap-2 mb-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div><span className="text-sm text-muted-foreground">Getting your location...</span></div>}
-        {location && locationStatus === 'granted' && <div className="flex items-center justify-center gap-2 mb-4"><MapPin className="h-4 w-4 text-green-600" /><span className="text-sm text-muted-foreground">📍 Location: {location.lat.toFixed(4)}, {location.lon.toFixed(4)}</span></div>}
-        {location && (locationStatus === 'denied' || locationStatus === 'unavailable' || locationStatus === 'fallback') && <div className="flex items-center justify-center gap-2 mb-4"><MapPin className="h-4 w-4 text-orange-600" /><span className="text-sm text-muted-foreground">📍 Using fallback location: Delhi, India ({location.lat.toFixed(4)}, {location.lon.toFixed(4)})</span></div>}
+          {location && (
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <MapPin className={`h-4 w-4 ${locationStatus === 'granted' ? 'text-green-600' : 'text-orange-600'}`} />
+            <div className="text-sm text-muted-foreground">
+              {placeName ? (
+                <span>📍 Location: <strong>{placeName}</strong>{locationStatus !== 'granted' ? ' (approx.)' : ''}</span>
+              ) : (
+                <span>📍 Location: {location.lat.toFixed(4)}, {location.lon.toFixed(4)}</span>
+              )}
+            </div>
+            <div className="ml-3">
+              <Button variant="ghost" size="sm" onClick={() => setShowLocationModal(true)}>Correct location</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
       {infoMessage && <Alert><AlertDescription>{infoMessage}</AlertDescription></Alert>}
+
+      {/* Location correction modal */}
+      {showLocationModal && location && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-card rounded-lg p-6 max-w-xl w-full">
+            <h3 className="text-lg font-medium mb-2">Confirm or correct your location</h3>
+            <p className="text-sm text-muted-foreground mb-4">If this location is inaccurate, you can drop a pin in Google Maps and paste coordinates here, or paste an address. We'll use that precise location for recommendations.</p>
+            <div className="mb-3">
+              <a href={`https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`} target="_blank" rel="noreferrer" className="text-primary underline">Open Google Maps to drop a pin</a>
+            </div>
+            <div className="mb-3">
+              <label className="text-sm block mb-1">Paste coordinates (lat,lon) or address</label>
+              <input value={manualLocationInput} onChange={(e) => setManualLocationInput(e.target.value)} placeholder="e.g. 12.9716,77.5946 or MG Road, Bengaluru" className="w-full rounded-md border px-2 py-1" />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowLocationModal(false)}>Cancel</Button>
+              <Button onClick={async () => {
+                // Try to parse coordinates
+                const v = manualLocationInput.trim();
+                let parsedLat: number | null = null;
+                let parsedLon: number | null = null;
+                if (v.includes(',')) {
+                  const parts = v.split(',').map(p => p.trim());
+                  const a = parseFloat(parts[0]);
+                  const b = parseFloat(parts[1]);
+                  if (!Number.isNaN(a) && !Number.isNaN(b)) {
+                    parsedLat = a; parsedLon = b;
+                  }
+                }
+                try {
+                  if (parsedLat !== null && parsedLon !== null) {
+                    setLocation({ lat: parsedLat, lon: parsedLon });
+                    setLocationStatus('granted');
+                    setShowLocationModal(false);
+                  } else {
+                    // Use Nominatim to geocode address to coords
+                    const q = encodeURIComponent(v);
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${q}`);
+                    if (res.ok) {
+                      const arr = await res.json();
+                      if (Array.isArray(arr) && arr.length > 0) {
+                        const first = arr[0];
+                        const lat = parseFloat(first.lat); const lon = parseFloat(first.lon);
+                        if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+                          setLocation({ lat, lon });
+                          setLocationStatus('granted');
+                          setShowLocationModal(false);
+                        } else {
+                          throw new Error('Unable to parse location');
+                        }
+                      } else {
+                        throw new Error('No results found');
+                      }
+                    } else {
+                      throw new Error('Geocoding failed');
+                    }
+                  }
+                } catch (err) {
+                  console.error('Failed to use manual location:', err);
+                  // Show brief alert
+                  setInfoMessage('Failed to parse location. Please paste coordinates like: 12.9716,77.5946');
+                }
+              }}>Use these coordinates</Button>
+              <Button variant="secondary" onClick={async () => {
+                // Save current location to user's profile
+                if (!location) return;
+                setSavingLocation(true);
+                try {
+                  const place = placeName || `${location.lat.toFixed(4)}, ${location.lon.toFixed(4)}`;
+                  await updateProfile({ profileData: { savedLocation: { lat: location.lat, lon: location.lon, place } } });
+                  toast.success('Saved location to your profile');
+                  setShowLocationModal(false);
+                } catch (err) {
+                  console.error('Failed to save location:', err);
+                  toast.error('Failed to save location');
+                } finally { setSavingLocation(false); }
+              }}>{savingLocation ? 'Saving...' : 'Save to my account'}</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter panel */}
       <Card>
