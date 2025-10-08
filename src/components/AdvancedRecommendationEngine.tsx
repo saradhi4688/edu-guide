@@ -408,7 +408,7 @@ export function AdvancedRecommendationEngine() {
             // Map server colleges to RecommendationResult minimal shape
             const mapped: RecommendationResult[] = data.colleges.map((c: any, idx: number) => {
               const courseName = (c.programs && c.programs[0]) || (c.courses && c.courses[0]) || 'Course';
-              const collegeLoc = c.latitude && c.longitude ? { lat: Number(c.latitude), lon: Number(c.longitude) } : (c.location && typeof c.location === 'string' ? { lat: location.lat, lon: location.lon } : { lat: location.lat, lon: location.lon });
+              const collegeLoc = (c.latitude !== undefined && c.longitude !== undefined) ? { lat: Number(c.latitude), lon: Number(c.longitude) } : (c.location && typeof c.location === 'object' ? { lat: Number(c.location.lat) || location.lat, lon: Number(c.location.lon) || location.lon } : { lat: location.lat, lon: location.lon });
               const distance_km = haversineDistance(location.lat, location.lon, collegeLoc.lat, collegeLoc.lon);
               const final_score = ((c.rating || 4) / 5) * 0.7 + (1 / (1 + distance_km / 10)) * 0.3;
               return {
@@ -421,10 +421,18 @@ export function AdvancedRecommendationEngine() {
               } as RecommendationResult;
             });
 
+            // If server provided pagination/total info, use it, otherwise assume single page
+            const serverTotal = Number(data.total || data.totalCount || (data.pagination && data.pagination.total) || mapped.length) || mapped.length;
+            const serverPageSize = Number((data.pagination && data.pagination.pageSize) || 10) || 10;
+            const serverTotalPages = Math.max(1, Math.ceil(serverTotal / serverPageSize));
+            const serverHasNext = page < serverTotalPages;
+
             if (page === 1) setRecommendations(mapped); else setRecommendations(prev => [...prev, ...mapped]);
-            setPagination({ page, pageSize: 10, total: mapped.length, totalPages: 1, hasNext: false });
-            setMetadata({ candidateSources: { geo: mapped.length, text: 0, semantic: 0, merged: mapped.length }, searchParams: { lat: location.lat, lon: location.lon, filters } });
-            if (page === 1) setCachedResults(cacheKey, { results: mapped, pagination: { page, pageSize: 10, total: mapped.length, totalPages: 1, hasNext: false }, metadata: { candidateSources: { geo: mapped.length, text: 0, semantic: 0, merged: mapped.length }, searchParams: { lat: location.lat, lon: location.lon, filters } } } as RecommendationResponse);
+            setPagination({ page, pageSize: serverPageSize, total: serverTotal, totalPages: serverTotalPages, hasNext: serverHasNext });
+
+            setMetadata({ candidateSources: data.metadata?.candidateSources || { geo: mapped.length, text: 0, semantic: 0, merged: mapped.length }, searchParams: { lat: location.lat, lon: location.lon, filters } });
+
+            if (page === 1) setCachedResults(cacheKey, { results: mapped, pagination: { page, pageSize: serverPageSize, total: serverTotal, totalPages: serverTotalPages, hasNext: serverHasNext }, metadata: data.metadata || { candidateSources: { geo: mapped.length, text: 0, semantic: 0, merged: mapped.length }, searchParams: { lat: location.lat, lon: location.lon, filters } } } as RecommendationResponse);
             setLoading(false);
             return;
           }
