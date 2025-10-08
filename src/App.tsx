@@ -65,6 +65,20 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             </ErrorBoundary>
           </div>
         </header>
+
+        {/* Production notice banner - highlighted message shown across the site */}
+        <div className="production-banner bg-yellow-50 border-b border-yellow-200 text-yellow-900 px-4 py-2 text-sm">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div className="production-banner__message">
+              <strong className="font-medium">Notice:</strong> This site is under production and may contain static/demo values or incomplete features.
+            </div>
+            <div className="production-banner__dynamic text-muted-foreground">
+              <span className="font-medium">Dynamic on this page:</span>
+              <span className="ml-2">Authentication (signup/login, email verification), Personalized Dashboard, Profile updates, Quizzes &amp; Recommendations, Streams &amp; Courses, College Finder, Alerts.</span>
+            </div>
+          </div>
+        </div>
+
         <main className="flex-1 overflow-auto">
           <ErrorBoundary>
             {children}
