@@ -37,14 +37,26 @@ class ApiClient {
     // Small timeout wrapper to avoid hung fetches and noisy errors
     const safeFetch = async (input: RequestInfo, init?: RequestInit, timeout = 7000) => {
       if (typeof AbortController === 'undefined') {
-        // Environment doesn't support AbortController; just do a normal fetch
-        return fetch(input, init);
+        try {
+          return await fetch(input, init);
+        } catch (err) {
+          // Convert to null so request() handles fallback uniformly
+          console.debug('safeFetch: fetch failed (no AbortController):', err instanceof Error ? err.message : String(err));
+          return null as unknown as Response;
+        }
       }
+
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
       try {
-        const response = await fetch(input, { signal: controller.signal, ...init });
-        return response;
+        try {
+          const response = await fetch(input, { signal: controller.signal, ...init });
+          return response;
+        } catch (err) {
+          // Swallow fetch-level TypeError (network/CORS) and return null so caller falls back to demo data
+          console.debug('safeFetch: fetch failed:', err instanceof Error ? err.message : String(err));
+          return null as unknown as Response;
+        }
       } finally {
         clearTimeout(id);
       }
