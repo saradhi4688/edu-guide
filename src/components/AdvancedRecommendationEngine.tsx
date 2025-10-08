@@ -11,7 +11,6 @@ import { useAuth } from './AuthContext';
 import { getApiUrl } from '../utils/api';
 import { collegeDatabase } from '../utils/collegeDatabase';
 import { toast } from 'sonner@2.0.3';
-import React, { useEffect, useState, useMemo } from 'react';
 
 // Types (kept same as before)
 interface RecommendationResult {
