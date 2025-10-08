@@ -54,7 +54,7 @@ export function Login() {
       // If signup returns a message (no automatic sign-in), show verification notice
       if (res && res.message) {
         setVerificationNotice('Mail sent — please click the link in the email and come back to this page.');
-        toast('Verification mail has been sent. Please confirm it.');
+        toast.success('Verification mail has been sent. Please confirm it.');
       } else {
         toast.success('Account created successfully! Welcome to EduGuide!');
       }
