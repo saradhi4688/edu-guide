@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (savedUserData) {
           setUser(JSON.parse(savedUserData));
         } else {
-          await fetchUserProfile(session.access_token);
+          await fetchUserProfile(session.access_token, session.user?.id);
         }
       } else {
         const savedUserData = localStorage.getItem('user_data');
@@ -225,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Refresh profile from server (public.profiles) to pick up role or other persisted attributes
         try {
-          await fetchUserProfile(session.access_token);
+          await fetchUserProfile(session.access_token, session.user?.id);
         } catch (e) {
           // ignore fetch profile errors, keep mapped user as fallback
         }
@@ -269,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try { if (session.access_token) localStorage.setItem('access_token', session.access_token); } catch {}
 
           try {
-            await fetchUserProfile(session.access_token);
+            await fetchUserProfile(session.access_token, session.user?.id);
           } catch (e) {
             // ignore
           }
